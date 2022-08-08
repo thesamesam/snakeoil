@@ -1,0 +1,241 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>snakeoil.iterables module &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="snakeoil.klass module" href="snakeoil.klass.html" />
+    <link rel="prev" title="snakeoil.formatters module" href="snakeoil.formatters.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.klass.html" title="snakeoil.klass module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.formatters.html" title="snakeoil.formatters module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" accesskey="U">snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.iterables module</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-snakeoil.iterables">
+<span id="snakeoil-iterables-module"></span><h1>snakeoil.iterables module<a class="headerlink" href="#module-snakeoil.iterables" title="Permalink to this heading">¶</a></h1>
+<p>Collection of functionality to make using iterators transparently easier</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.iterables.caching_iter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.iterables.</span></span><span class="sig-name descname"><span class="pre">caching_iter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sorter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/iterables.html#caching_iter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.iterables.caching_iter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>On demand consumes from an iterable so as to appear like a tuple</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.iterables</span> <span class="kn">import</span> <span class="n">caching_iter</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">i</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ci</span> <span class="o">=</span> <span class="n">caching_iter</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">ci</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="go">0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">ci</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="go">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">next</span><span class="p">())</span>
+<span class="go">3</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.iterables.caching_iter.cached_list">
+<span class="sig-name descname"><span class="pre">cached_list</span></span><a class="headerlink" href="#snakeoil.iterables.caching_iter.cached_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.iterables.caching_iter.iterable">
+<span class="sig-name descname"><span class="pre">iterable</span></span><a class="headerlink" href="#snakeoil.iterables.caching_iter.iterable" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.iterables.caching_iter.sorter">
+<span class="sig-name descname"><span class="pre">sorter</span></span><a class="headerlink" href="#snakeoil.iterables.caching_iter.sorter" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.iterables.expandable_chain">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.iterables.</span></span><span class="sig-name descname"><span class="pre">expandable_chain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">iterables</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/iterables.html#expandable_chain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.iterables.expandable_chain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>chained iterables, with the ability to add new iterables to the chain
+as long as the instance hasn’t raised StopIteration already.  This is
+fairly useful for implementing queues of things that must be processed.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.iterables</span> <span class="kn">import</span> <span class="n">expandable_chain</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">l</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">i</span> <span class="o">=</span> <span class="n">expandable_chain</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">next</span><span class="p">())</span>
+<span class="go">0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">next</span><span class="p">())</span>
+<span class="go">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">i</span><span class="o">.</span><span class="n">appendleft</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">next</span><span class="p">())</span>
+<span class="go">5</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">next</span><span class="p">())</span>
+<span class="go">6</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">next</span><span class="p">())</span>
+<span class="go">2</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.iterables.expandable_chain.append">
+<span class="sig-name descname"><span class="pre">append</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/iterables.html#expandable_chain.append"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.iterables.expandable_chain.append" title="Permalink to this definition">¶</a></dt>
+<dd><p>append an iterable to the chain to be consumed</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.iterables.expandable_chain.appendleft">
+<span class="sig-name descname"><span class="pre">appendleft</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/iterables.html#expandable_chain.appendleft"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.iterables.expandable_chain.appendleft" title="Permalink to this definition">¶</a></dt>
+<dd><p>prepend an iterable to the chain to be consumed</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.iterables.expandable_chain.extend">
+<span class="sig-name descname"><span class="pre">extend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterables</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/iterables.html#expandable_chain.extend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.iterables.expandable_chain.extend" title="Permalink to this definition">¶</a></dt>
+<dd><p>extend multiple iterables to the chain to be consumed</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.iterables.expandable_chain.extendleft">
+<span class="sig-name descname"><span class="pre">extendleft</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterables</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/iterables.html#expandable_chain.extendleft"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.iterables.expandable_chain.extendleft" title="Permalink to this definition">¶</a></dt>
+<dd><p>prepend multiple iterables to the chain to be consumed</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.iterables.iter_sort">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.iterables.</span></span><span class="sig-name descname"><span class="pre">iter_sort</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sorter</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">iterables</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/iterables.html#iter_sort"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.iterables.iter_sort" title="Permalink to this definition">¶</a></dt>
+<dd><p>Merge a number of sorted iterables into a single sorted iterable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sorter</strong> (<em>callable.</em>) – function, passed a list of [element, iterable].</p></li>
+<li><p><strong>iterables</strong> – iterables to consume from.  It’s <strong>required</strong>
+that each iterable to consume from is presorted already within
+that specific iterable.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>yields items one by one in combined sorted order</p>
+</dd>
+</dl>
+<p>For example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.iterables</span> <span class="kn">import</span> <span class="n">iter_sort</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">iter1</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">iter2</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># note that these lists will be consumed as they go,</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># sorted is just being used to compare the individual items</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sorted_iter</span> <span class="o">=</span> <span class="n">iter_sort</span><span class="p">(</span><span class="nb">sorted</span><span class="p">,</span> <span class="n">iter1</span><span class="p">,</span> <span class="n">iter2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">sorted_iter</span><span class="p">))</span>
+<span class="go">[0, 1, 2, 3, 4, 5]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.iterables.partition">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.iterables.</span></span><span class="sig-name descname"><span class="pre">partition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predicate=&lt;class</span> <span class="pre">'bool'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/iterables.html#partition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.iterables.partition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Partition an iterable into two iterables based on a given filter.</p>
+<p>Taking care that the predicate is called only once for each element.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>iterable: target iterable to split into two
+predicate: filtering function used to split the iterable</p>
+</dd>
+<dt>Returns:</dt><dd><p>A tuple of iterators, the first containing items that don’t match the
+filter and the second the matched items.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="snakeoil.formatters.html"
+                          title="previous chapter">snakeoil.formatters module</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="snakeoil.klass.html"
+                          title="next chapter">snakeoil.klass module</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.klass.html" title="snakeoil.klass module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.formatters.html" title="snakeoil.formatters module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.iterables module</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

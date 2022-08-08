@@ -1,0 +1,182 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>snakeoil.cli.input &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.cli.input</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for snakeoil.cli.input</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Various methods involving user input.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">errno</span>
+
+
+<div class="viewcode-block" id="NoChoice"><a class="viewcode-back" href="../../../api/snakeoil.cli.input.html#snakeoil.cli.input.NoChoice">[docs]</a><span class="k">class</span> <span class="nc">NoChoice</span><span class="p">(</span><span class="ne">KeyboardInterrupt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Raised by :obj:`userquery` if no choice was made.</span>
+
+<span class="sd">    HACK: this subclasses KeyboardInterrupt, so if you ignore this it</span>
+<span class="sd">    should do something reasonable.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="userquery"><a class="viewcode-back" href="../../../api/snakeoil.cli.input.html#snakeoil.cli.input.userquery">[docs]</a><span class="k">def</span> <span class="nf">userquery</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">responses</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">default_answer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Ask the user to choose from a set of options.</span>
+
+<span class="sd">    Displays a prompt and a set of responses, then waits for a</span>
+<span class="sd">    response which is checked against the responses. If there is an</span>
+<span class="sd">    unambiguous match the value is returned.</span>
+
+<span class="sd">    If the user does not input a valid response after a number of</span>
+<span class="sd">    tries :obj:`NoChoice` is raised. You can catch this if you want to do</span>
+<span class="sd">    something special. Because it subclasses C{KeyboardInterrupt}</span>
+<span class="sd">    the default behaviour is to abort as if the user hit ctrl+c.</span>
+
+<span class="sd">    :type prompt: C{basestring} or a tuple of things to pass to a formatter.</span>
+<span class="sd">        XXX this is a crummy api but I cannot think of a better one supporting</span>
+<span class="sd">        the very common case of wanting just a string as prompt.</span>
+<span class="sd">    :type out: formatter.</span>
+<span class="sd">    :type err: formatter.</span>
+<span class="sd">    :type responses: mapping with C{basestring} keys and tuple values.</span>
+<span class="sd">    :param responses: mapping of user input to function result.</span>
+<span class="sd">        The first item in the value tuple is returned, the rest is passed to</span>
+<span class="sd">        out.  Defaults to::</span>
+<span class="sd">        {&#39;yes&#39;: (True, out.fg(&#39;green&#39;), &#39;Yes&#39;),</span>
+<span class="sd">        &#39;no&#39;: (False, out.fg(&#39;red&#39;), &#39;No&#39;)}</span>
+<span class="sd">    :param default_answer: returned if there is no input</span>
+<span class="sd">        (user just hits enter). Defaults to True if responses is unset,</span>
+<span class="sd">        unused otherwise.</span>
+<span class="sd">    :param limit: number of allowed tries.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">responses</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">responses</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;yes&#39;</span><span class="p">:</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">out</span><span class="o">.</span><span class="n">fg</span><span class="p">(</span><span class="s1">&#39;green&#39;</span><span class="p">),</span> <span class="s1">&#39;Yes&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;no&#39;</span><span class="p">:</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">out</span><span class="o">.</span><span class="n">fg</span><span class="p">(</span><span class="s1">&#39;red&#39;</span><span class="p">),</span> <span class="s1">&#39;No&#39;</span><span class="p">),</span>
+            <span class="p">}</span>
+        <span class="k">if</span> <span class="n">default_answer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">default_answer</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="n">default_answer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">responses</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">default_answer</span><span class="p">:</span>
+                <span class="n">default_answer_name</span> <span class="o">=</span> <span class="n">val</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+                <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;default answer matches no responses&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">limit</span><span class="p">):</span>
+        <span class="c1"># XXX see docstring about crummyness</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">autoline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="n">prompt</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">autoline</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39; [&#39;</span><span class="p">,</span> <span class="n">autoline</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">prompts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">responses</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">choice</span> <span class="ow">in</span> <span class="n">prompts</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">autoline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="n">choice</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">reset</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="n">autoline</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">autoline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="n">prompts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">reset</span><span class="p">,</span> <span class="s1">&#39;]&#39;</span><span class="p">,</span> <span class="n">autoline</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">default_answer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39; (default: &#39;</span><span class="p">,</span> <span class="n">autoline</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">autoline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="n">default_answer_name</span><span class="p">)</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;)&#39;</span><span class="p">,</span> <span class="n">autoline</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;: &#39;</span><span class="p">,</span> <span class="n">autoline</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="nb">input</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">EOFError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Not answerable: EOF on STDIN&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">NoChoice</span><span class="p">()</span> <span class="kn">from</span> <span class="nn">e</span>
+        <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">EBADF</span><span class="p">:</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Not answerable: STDIN is either closed, or not readable&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">NoChoice</span><span class="p">()</span> <span class="kn">from</span> <span class="nn">e</span>
+            <span class="k">raise</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">response</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">default_answer</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">responses</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">key</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">response</span><span class="p">)]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="n">response</span><span class="o">.</span><span class="n">lower</span><span class="p">()))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">results</span><span class="p">:</span>
+            <span class="n">err</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;Sorry, response </span><span class="si">%r</span><span class="s1"> not understood.&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">response</span><span class="p">,))</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">err</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s1">&#39;Response </span><span class="si">%r</span><span class="s1"> is ambiguous (</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span>
+                <span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">results</span><span class="p">)))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">results</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">raise</span> <span class="n">NoChoice</span><span class="p">()</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.cli.input</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

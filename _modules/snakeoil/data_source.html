@@ -1,0 +1,545 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>snakeoil.data_source &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.data_source</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for snakeoil.data_source</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">A far more minimal form of file protocol encapsulation location and encoding into it</span>
+
+<span class="sd">The primary use for data_source&#39;s is to encapsulate the following issues into a single object:</span>
+
+<span class="sd">* is the data actually on disk (thus can I use more efficient ops against the file?).</span>
+<span class="sd">* what is the preferred encoding?</span>
+<span class="sd">* py3k compatibility concerns (bytes versus text file handles)</span>
+
+<span class="sd">Note that all file like handles returned from `text_fileobj()` and `bytes_fileobj()`</span>
+<span class="sd">have a required additional attribute- *exceptions*, either a single Exception class, or a</span>
+<span class="sd">tuple of Exception classes that can be thrown by that file handle during usage.</span>
+
+<span class="sd">This requirement exists purely to allow the consuming code to avoid having to know anything</span>
+<span class="sd">about the backing of the file like object.</span>
+
+<span class="sd">The proper way to use such a filehandle is as follows:</span>
+
+<span class="sd">&gt;&gt;&gt; from snakeoil.data_source import data_source</span>
+<span class="sd">&gt;&gt;&gt; source = data_source(&quot;It&#39;s a fez. I wear a fez now. Fezes are cool.&quot;, mutable=False)</span>
+<span class="sd">&gt;&gt;&gt; handle = source.text_fileobj()</span>
+<span class="sd">&gt;&gt;&gt; handle.write(&quot;You graffitied the oldest cliff face in the universe.&quot;)</span>
+<span class="sd">Traceback (most recent call last):</span>
+<span class="sd">TypeError:</span>
+<span class="sd">&gt;&gt;&gt; # if this where a normal file, it would be an IOError- it&#39;s impossible to guess the</span>
+<span class="sd">&gt;&gt;&gt; # correct exception to intercept, so instead we rely on the handle telling us what</span>
+<span class="sd">&gt;&gt;&gt; # we should catch;</span>
+<span class="sd">&gt;&gt;&gt; try:</span>
+<span class="sd">...   handle.write(&quot;You wouldn&#39;t answer your phone.&quot;)</span>
+<span class="sd">... except handle.exceptions as e:</span>
+<span class="sd">...   print(&quot;we caught the exception.&quot;)</span>
+<span class="sd">we caught the exception.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;base&quot;</span><span class="p">,</span> <span class="s2">&quot;bz2_source&quot;</span><span class="p">,</span> <span class="s2">&quot;data_source&quot;</span><span class="p">,</span> <span class="s2">&quot;local_source&quot;</span><span class="p">,</span> <span class="s2">&quot;text_data_source&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;bytes_data_source&quot;</span><span class="p">,</span> <span class="s2">&quot;invokable_data_source&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">errno</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">compression</span><span class="p">,</span> <span class="n">fileutils</span><span class="p">,</span> <span class="n">klass</span><span class="p">,</span> <span class="n">stringio</span>
+<span class="kn">from</span> <span class="nn">.currying</span> <span class="kn">import</span> <span class="n">post_curry</span>
+
+
+<span class="k">def</span> <span class="nf">_mk_writable_cls</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    inline mixin of writable overrides</span>
+
+<span class="sd">    while a normal mixin is preferable, this is required due to</span>
+<span class="sd">    differing slot layouts between py2k/py3k base classes of</span>
+<span class="sd">    stringio.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">class</span> <span class="nc">kls</span><span class="p">(</span><span class="n">base</span><span class="p">):</span>
+        <span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        writable </span><span class="si">%s</span><span class="s2"> StringIO instance suitable for usage as a data_source filehandle</span>
+
+<span class="s2">        This adds a callback for updating the original data source, and appropriate</span>
+<span class="s2">        exceptions attribute</span>
+<span class="s2">        &quot;&quot;&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],)</span>
+
+
+        <span class="n">base_cls</span> <span class="o">=</span> <span class="n">base</span>
+        <span class="n">exceptions</span> <span class="o">=</span> <span class="p">(</span><span class="ne">MemoryError</span><span class="p">,)</span>
+        <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;_callback&#39;</span><span class="p">,)</span>
+
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            :param callback: functor invoked when this data source is modified;</span>
+<span class="sd">                the functor takes a single value, the full content of the StringIO</span>
+<span class="sd">            :param data: initial data for this instance</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">callback</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;callback must be callable&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base_cls</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span> <span class="o">=</span> <span class="n">callback</span>
+
+        <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base_cls</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+    <span class="n">kls</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">name</span>
+    <span class="k">return</span> <span class="n">kls</span>
+
+
+<span class="n">text_wr_StringIO</span> <span class="o">=</span> <span class="n">_mk_writable_cls</span><span class="p">(</span><span class="n">stringio</span><span class="o">.</span><span class="n">text_writable</span><span class="p">,</span> <span class="s2">&quot;text_wr_StringIO&quot;</span><span class="p">)</span>
+<span class="n">bytes_wr_StringIO</span> <span class="o">=</span> <span class="n">_mk_writable_cls</span><span class="p">(</span><span class="n">stringio</span><span class="o">.</span><span class="n">bytes_writable</span><span class="p">,</span> <span class="s2">&quot;bytes_wr_StringIO&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">text_ro_StringIO</span><span class="p">(</span><span class="n">stringio</span><span class="o">.</span><span class="n">text_readonly</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    readonly text mode StringIO usable as a filehandle for a data_source</span>
+
+<span class="sd">    Specifically this adds the necessary `exceptions` attribute; see</span>
+<span class="sd">    :py:class:`snakeoil.stringio.text_readonly` for methods details.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="n">exceptions</span> <span class="o">=</span> <span class="p">(</span><span class="ne">MemoryError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">bytes_ro_StringIO</span><span class="p">(</span><span class="n">stringio</span><span class="o">.</span><span class="n">bytes_readonly</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    readonly bytes mode StringIO usable as a filehandle for a data_source</span>
+
+<span class="sd">    Specifically this adds the necessary `exceptions` attribute; see</span>
+<span class="sd">    :py:class:`snakeoil.stringio.bytes_readonly` for methods details.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="n">exceptions</span> <span class="o">=</span> <span class="p">(</span><span class="ne">MemoryError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">)</span>
+
+
+<span class="c1"># derive our file classes- we derive *strictly* to append</span>
+<span class="c1"># the exceptions class attribute for consumer usage.</span>
+<span class="k">def</span> <span class="nf">open_file</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+    <span class="n">handle</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span>
+    <span class="n">handle</span><span class="o">.</span><span class="n">exceptions</span> <span class="o">=</span> <span class="p">(</span><span class="ne">EnvironmentError</span><span class="p">,)</span>
+    <span class="k">return</span> <span class="n">handle</span>
+
+
+<div class="viewcode-block" id="base"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.base">[docs]</a><span class="k">class</span> <span class="nc">base</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    base data_source class; implementations of the protocol are advised</span>
+<span class="sd">    to derive from this.</span>
+
+<span class="sd">    :ivar path: If None, no local path is available- else it&#39;s the ondisk path to</span>
+<span class="sd">      the data</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;weakref&quot;</span><span class="p">,)</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="base.text_fileobj"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.base.text_fileobj">[docs]</a>    <span class="k">def</span> <span class="nf">text_fileobj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">writable</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;get a text level filehandle for for this data</span>
+
+<span class="sd">        :param writable: whether or not we need to write to the handle</span>
+<span class="sd">        :raise: TypeError if immutable and write is requested</span>
+<span class="sd">        :return: file handle like object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;text_fileobj&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="base.bytes_fileobj"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.base.bytes_fileobj">[docs]</a>    <span class="k">def</span> <span class="nf">bytes_fileobj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">writable</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;get a bytes level filehandle for for this data</span>
+
+<span class="sd">        :param writable: whether or not we need to write to the handle</span>
+<span class="sd">        :raise: TypeError if immutable and write is requested</span>
+<span class="sd">        :return: file handle like object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;bytes_fileobj&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="base.transfer_to_path"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.base.transfer_to_path">[docs]</a>    <span class="k">def</span> <span class="nf">transfer_to_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transfer_to_data_source</span><span class="p">(</span>
+            <span class="n">local_source</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">mutable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="base.transfer_to_data_source"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.base.transfer_to_data_source">[docs]</a>    <span class="k">def</span> <span class="nf">transfer_to_data_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">write_source</span><span class="p">):</span>
+        <span class="n">read_f</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">write_f</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">write_f</span> <span class="o">=</span> <span class="n">write_source</span><span class="o">.</span><span class="n">bytes_fileobj</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">m</span><span class="p">,</span> <span class="n">read_f</span> <span class="o">=</span> <span class="n">fileutils</span><span class="o">.</span><span class="n">mmap_or_open_for_read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">read_f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bytes_fileobj</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">read_f</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">transfer_between_files</span><span class="p">(</span><span class="n">read_f</span><span class="p">,</span> <span class="n">write_f</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">write_f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">(</span><span class="n">read_f</span><span class="p">,</span> <span class="n">write_f</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">x</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="k">except</span> <span class="ne">EnvironmentError</span><span class="p">:</span>
+                    <span class="k">pass</span></div></div>
+
+
+<div class="viewcode-block" id="local_source"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.local_source">[docs]</a><span class="k">class</span> <span class="nc">local_source</span><span class="p">(</span><span class="n">base</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;locally accessible data source</span>
+
+<span class="sd">    Literally a file on disk.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;path&quot;</span><span class="p">,</span> <span class="s2">&quot;mutable&quot;</span><span class="p">,</span> <span class="s2">&quot;encoding&quot;</span><span class="p">)</span>
+
+    <span class="n">buffering_window</span> <span class="o">=</span> <span class="mi">32768</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">mutable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param path: file path of the data source</span>
+<span class="sd">        :param mutable: whether this data_source is considered modifiable or not</span>
+<span class="sd">        :param encoding: the text encoding to force, if any</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">base</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mutable</span> <span class="o">=</span> <span class="n">mutable</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">encoding</span> <span class="o">=</span> <span class="n">encoding</span>
+
+<div class="viewcode-block" id="local_source.text_fileobj"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.local_source.text_fileobj">[docs]</a>    <span class="nd">@klass</span><span class="o">.</span><span class="n">steal_docs</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">text_fileobj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">writable</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">writable</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">mutable</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;data source </span><span class="si">%s</span><span class="s2"> is immutable&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="p">,))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoding</span><span class="p">:</span>
+            <span class="n">opener</span> <span class="o">=</span> <span class="n">open_file</span>
+            <span class="n">opener</span> <span class="o">=</span> <span class="n">post_curry</span><span class="p">(</span><span class="n">opener</span><span class="p">,</span> <span class="n">buffering</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">buffering_window</span><span class="p">,</span>
+                                <span class="n">encoding</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">encoding</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">opener</span> <span class="o">=</span> <span class="n">post_curry</span><span class="p">(</span><span class="n">open_file</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffering_window</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">writable</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">opener</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">opener</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;r+&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">ie</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ie</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">ENOENT</span><span class="p">:</span>
+                <span class="k">raise</span>
+            <span class="k">return</span> <span class="n">opener</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;w+&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="local_source.bytes_fileobj"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.local_source.bytes_fileobj">[docs]</a>    <span class="nd">@klass</span><span class="o">.</span><span class="n">steal_docs</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">bytes_fileobj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">writable</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">writable</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">open_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffering_window</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">mutable</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;data source </span><span class="si">%s</span><span class="s2"> is immutable&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="p">,))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">open_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;rb+&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffering_window</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">ie</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ie</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">ENOENT</span><span class="p">:</span>
+                <span class="k">raise</span>
+            <span class="k">return</span> <span class="n">open_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;wb+&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffering_window</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="bz2_source"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.bz2_source">[docs]</a><span class="k">class</span> <span class="nc">bz2_source</span><span class="p">(</span><span class="n">base</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    locally accessible bz2 archive</span>
+
+<span class="sd">    Literally a bz2 file on disk.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;path&quot;</span><span class="p">,</span> <span class="s2">&quot;mutable&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">mutable</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param path: file path of the data source</span>
+<span class="sd">        :param mutable: whether this data source is considered modifiable or not</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">base</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mutable</span> <span class="o">=</span> <span class="n">mutable</span>
+
+<div class="viewcode-block" id="bz2_source.text_fileobj"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.bz2_source.text_fileobj">[docs]</a>    <span class="k">def</span> <span class="nf">text_fileobj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">writable</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">compression</span><span class="o">.</span><span class="n">decompress_data</span><span class="p">(</span>
+            <span class="s1">&#39;bzip2&#39;</span><span class="p">,</span> <span class="n">fileutils</span><span class="o">.</span><span class="n">readfile_bytes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">writable</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">mutable</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;data source </span><span class="si">%s</span><span class="s2"> is not mutable&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="p">,))</span>
+            <span class="k">return</span> <span class="n">text_wr_StringIO</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_data</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">text_ro_StringIO</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="bz2_source.bytes_fileobj"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.bz2_source.bytes_fileobj">[docs]</a>    <span class="k">def</span> <span class="nf">bytes_fileobj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">writable</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">compression</span><span class="o">.</span><span class="n">decompress_data</span><span class="p">(</span>
+            <span class="s1">&#39;bzip2&#39;</span><span class="p">,</span> <span class="n">fileutils</span><span class="o">.</span><span class="n">readfile_bytes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">writable</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">mutable</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;data source </span><span class="si">%s</span><span class="s2"> is not mutable&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="p">,))</span>
+            <span class="k">return</span> <span class="n">bytes_wr_StringIO</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_data</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">bytes_ro_StringIO</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_set_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">compression</span><span class="o">.</span><span class="n">compress_data</span><span class="p">(</span><span class="s1">&#39;bzip2&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="data_source"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.data_source">[docs]</a><span class="k">class</span> <span class="nc">data_source</span><span class="p">(</span><span class="n">base</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    base class encapsulating a purely virtual data source lacking an on disk location.</span>
+
+<span class="sd">    Whether this be due to transformation steps necessary (pulling the data out of</span>
+<span class="sd">    an archive for example), or the data being generated on the fly, this classes&#39;s</span>
+<span class="sd">    derivatives :py:class:`text_data_source` and :py:class:`bytes_data_source` are</span>
+<span class="sd">    likely what you should be using for direct creation.</span>
+
+<span class="sd">    :ivar data: the raw data- should either be a string or bytes depending on your</span>
+<span class="sd">      derivative</span>
+<span class="sd">    :ivar path: note that path is None for this class- no on disk location available.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="s1">&#39;mutable&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">mutable</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param data: data to wrap</span>
+<span class="sd">        :param mutable: should this data_source be updatable?</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">base</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mutable</span> <span class="o">=</span> <span class="n">mutable</span>
+
+    <span class="k">def</span> <span class="nf">_convert_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;bytes&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+
+<div class="viewcode-block" id="data_source.text_fileobj"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.data_source.text_fileobj">[docs]</a>    <span class="nd">@klass</span><span class="o">.</span><span class="n">steal_docs</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">text_fileobj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">writable</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">writable</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">mutable</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;data source </span><span class="si">%s</span><span class="s2"> is not mutable&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="p">,))</span>
+            <span class="k">return</span> <span class="n">text_wr_StringIO</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reset_data</span><span class="p">,</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">_convert_data</span><span class="p">(</span><span class="s1">&#39;text&#39;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">text_ro_StringIO</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_convert_data</span><span class="p">(</span><span class="s1">&#39;text&#39;</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">_reset_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+
+<div class="viewcode-block" id="data_source.bytes_fileobj"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.data_source.bytes_fileobj">[docs]</a>    <span class="nd">@klass</span><span class="o">.</span><span class="n">steal_docs</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">bytes_fileobj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">writable</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">writable</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">mutable</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;data source </span><span class="si">%s</span><span class="s2"> is not mutable&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="p">,))</span>
+            <span class="k">return</span> <span class="n">bytes_wr_StringIO</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reset_data</span><span class="p">,</span>
+                                     <span class="bp">self</span><span class="o">.</span><span class="n">_convert_data</span><span class="p">(</span><span class="s1">&#39;bytes&#39;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">bytes_ro_StringIO</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_convert_data</span><span class="p">(</span><span class="s1">&#39;bytes&#39;</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="text_data_source"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.text_data_source">[docs]</a><span class="k">class</span> <span class="nc">text_data_source</span><span class="p">(</span><span class="n">data_source</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Text data source.</span>
+
+<span class="sd">    This does autoconversionbetween bytes/text as needed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
+
+    <span class="nd">@klass</span><span class="o">.</span><span class="n">steal_docs</span><span class="p">(</span><span class="n">data_source</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">mutable</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;data must be a str&quot;</span><span class="p">)</span>
+        <span class="n">data_source</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">mutable</span><span class="o">=</span><span class="n">mutable</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_convert_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">!=</span> <span class="s1">&#39;bytes&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="bytes_data_source"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.bytes_data_source">[docs]</a><span class="k">class</span> <span class="nc">bytes_data_source</span><span class="p">(</span><span class="n">data_source</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Bytes data source.</span>
+
+<span class="sd">    This does autoconversion between bytes/text as needed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
+
+    <span class="nd">@klass</span><span class="o">.</span><span class="n">steal_docs</span><span class="p">(</span><span class="n">data_source</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">mutable</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;data must be bytes&quot;</span><span class="p">)</span>
+        <span class="n">data_source</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">mutable</span><span class="o">=</span><span class="n">mutable</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_convert_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;bytes&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="invokable_data_source"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.invokable_data_source">[docs]</a><span class="k">class</span> <span class="nc">invokable_data_source</span><span class="p">(</span><span class="n">data_source</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    data source that takes a callable instead of the actual data item</span>
+
+<span class="sd">    The callable takes a single argument- a boolean, True if a text fileobj</span>
+<span class="sd">    is requested, False if None</span>
+
+<span class="sd">    Note that this instance is explicitly readonly.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param data: callable that accepts one argument- True if a text</span>
+<span class="sd">          file obj was requested, False if a bytes file obj is requested.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data_source</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">mutable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<div class="viewcode-block" id="invokable_data_source.text_fileobj"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.invokable_data_source.text_fileobj">[docs]</a>    <span class="nd">@klass</span><span class="o">.</span><span class="n">steal_docs</span><span class="p">(</span><span class="n">data_source</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">text_fileobj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">writable</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">writable</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;data source </span><span class="si">%s</span><span class="s2"> data is immutable&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="p">,))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="invokable_data_source.bytes_fileobj"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.invokable_data_source.bytes_fileobj">[docs]</a>    <span class="nd">@klass</span><span class="o">.</span><span class="n">steal_docs</span><span class="p">(</span><span class="n">data_source</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">bytes_fileobj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">writable</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">writable</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;data source </span><span class="si">%s</span><span class="s2"> data is immutable&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="p">,))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="invokable_data_source.wrap_function"><a class="viewcode-back" href="../../api/snakeoil.data_source.html#snakeoil.data_source.invokable_data_source.wrap_function">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">wrap_function</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">invokable</span><span class="p">,</span> <span class="n">returns_text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">returns_handle</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding_hint</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Helper function to automatically convert a function that returns text or bytes into appropriate</span>
+<span class="sd">        callable</span>
+
+<span class="sd">        :param invokable: a callable that returns either text, or bytes, taking no args</span>
+<span class="sd">        :param returns_text: True if the data returned is text/basestring, False if Not</span>
+<span class="sd">        :param returns_handle: True if the object returned is a handle, False if not.  Note that returns_text</span>
+<span class="sd">            still has meaning here- returns_text indicates what sort of data the handle returns from read</span>
+<span class="sd">            invocations.</span>
+<span class="sd">        :param encoding_hint: the preferred encoding to use for encoding</span>
+<span class="sd">        :return: invokable_data_source instance</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_simple_wrapper</span><span class="p">,</span> <span class="n">invokable</span><span class="p">,</span> <span class="n">encoding_hint</span><span class="p">,</span> <span class="n">returns_text</span><span class="p">,</span> <span class="n">returns_handle</span><span class="p">))</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_simple_wrapper</span><span class="p">(</span><span class="n">invokable</span><span class="p">,</span> <span class="n">encoding_hint</span><span class="p">,</span> <span class="n">returns_text</span><span class="p">,</span> <span class="n">returns_handle</span><span class="p">,</span> <span class="n">text_wanted</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">invokable</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">returns_text</span> <span class="o">!=</span> <span class="n">text_wanted</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">text_wanted</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">returns_handle</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">encoding_hint</span><span class="p">:</span>
+                    <span class="c1"># we have an encoding, its bytes data, and text is wanted</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">encoding_hint</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># bytes were wanted...</span>
+                <span class="k">if</span> <span class="n">returns_handle</span><span class="p">:</span>
+                    <span class="c1"># pull in the data...</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">encoding_hint</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># fallback to utf8</span>
+                    <span class="n">encoding_hint</span> <span class="o">=</span> <span class="s1">&#39;utf8&#39;</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">encoding_hint</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">returns_handle</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span>
+        <span class="k">if</span> <span class="n">text_wanted</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">text_ro_StringIO</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">bytes_ro_StringIO</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">transfer_between_files</span><span class="p">(</span><span class="n">read_file</span><span class="p">,</span> <span class="n">write_file</span><span class="p">,</span> <span class="n">bufsize</span><span class="o">=</span><span class="p">(</span><span class="mi">32</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">)):</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">read_file</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">bufsize</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">data</span><span class="p">:</span>
+        <span class="n">write_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">read_file</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">bufsize</span><span class="p">)</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.data_source</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

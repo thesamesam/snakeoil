@@ -1,0 +1,398 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>snakeoil.process.namespaces &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../process.html" accesskey="U">snakeoil.process</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.process.namespaces</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for snakeoil.process.namespaces</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) 2013 The Chromium OS Authors. All rights reserved.</span>
+
+<span class="sd">&quot;&quot;&quot;Support for Linux namespaces&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">ctypes</span>
+<span class="kn">import</span> <span class="nn">ctypes.util</span>
+<span class="kn">import</span> <span class="nn">errno</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">signal</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">from</span> <span class="nn">..osutils.mount</span> <span class="kn">import</span> <span class="p">(</span><span class="n">MS_NODEV</span><span class="p">,</span> <span class="n">MS_NOEXEC</span><span class="p">,</span> <span class="n">MS_NOSUID</span><span class="p">,</span> <span class="n">MS_PRIVATE</span><span class="p">,</span> <span class="n">MS_REC</span><span class="p">,</span> <span class="n">MS_RELATIME</span><span class="p">,</span>
+                             <span class="n">MS_SLAVE</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">..osutils.mount</span> <span class="kn">import</span> <span class="n">mount</span> <span class="k">as</span> <span class="n">_mount</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">exit_as_status</span>
+
+<span class="n">CLONE_FS</span> <span class="o">=</span> <span class="mh">0x00000200</span>
+<span class="n">CLONE_FILES</span> <span class="o">=</span> <span class="mh">0x00000400</span>
+<span class="n">CLONE_NEWNS</span> <span class="o">=</span> <span class="mh">0x00020000</span>
+<span class="n">CLONE_NEWUTS</span> <span class="o">=</span> <span class="mh">0x04000000</span>
+<span class="n">CLONE_NEWIPC</span> <span class="o">=</span> <span class="mh">0x08000000</span>
+<span class="n">CLONE_NEWUSER</span> <span class="o">=</span> <span class="mh">0x10000000</span>
+<span class="n">CLONE_NEWPID</span> <span class="o">=</span> <span class="mh">0x20000000</span>
+<span class="n">CLONE_NEWNET</span> <span class="o">=</span> <span class="mh">0x40000000</span>
+
+
+<div class="viewcode-block" id="setns"><a class="viewcode-back" href="../../../api/snakeoil.process.namespaces.html#snakeoil.process.namespaces.setns">[docs]</a><span class="k">def</span> <span class="nf">setns</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">nstype</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Binding to the Linux setns system call. See setns(2) for details.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fd: An open file descriptor or path to one.</span>
+<span class="sd">        nstype: Namespace to enter; one of CLONE_*.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        OSError: if setns failed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">fp</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">fp</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+            <span class="n">fd</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">fileno</span><span class="p">()</span>
+
+        <span class="n">libc</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">CDLL</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">find_library</span><span class="p">(</span><span class="s1">&#39;c&#39;</span><span class="p">),</span> <span class="n">use_errno</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">libc</span><span class="o">.</span><span class="n">setns</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_int</span><span class="p">(</span><span class="n">fd</span><span class="p">),</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_int</span><span class="p">(</span><span class="n">nstype</span><span class="p">))</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">e</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">get_errno</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">strerror</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">fp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="unshare"><a class="viewcode-back" href="../../../api/snakeoil.process.namespaces.html#snakeoil.process.namespaces.unshare">[docs]</a><span class="k">def</span> <span class="nf">unshare</span><span class="p">(</span><span class="n">flags</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Binding to the Linux unshare system call. See unshare(2) for details.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        flags: Namespaces to unshare; bitwise OR of CLONE_* flags.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        OSError: if unshare failed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">libc</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">CDLL</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">find_library</span><span class="p">(</span><span class="s1">&#39;c&#39;</span><span class="p">),</span> <span class="n">use_errno</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">libc</span><span class="o">.</span><span class="n">unshare</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_int</span><span class="p">(</span><span class="n">flags</span><span class="p">))</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">get_errno</span><span class="p">()</span>
+        <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">strerror</span><span class="p">(</span><span class="n">e</span><span class="p">))</span></div>
+
+
+<span class="k">def</span> <span class="nf">_reap_children</span><span class="p">(</span><span class="n">pid</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Reap all children that get reparented to us until we see |pid| exit.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        pid: The main child to watch for.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The wait status of the |pid| child.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pid_status</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="p">(</span><span class="n">wpid</span><span class="p">,</span> <span class="n">status</span><span class="p">)</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">pid</span> <span class="o">==</span> <span class="n">wpid</span><span class="p">:</span>
+                <span class="c1"># Save the status of our main child so we can exit with it below.</span>
+                <span class="n">pid_status</span> <span class="o">=</span> <span class="n">status</span>
+        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">ECHILD</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">elif</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">EINTR</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+    <span class="k">return</span> <span class="n">pid_status</span>
+
+
+<span class="k">def</span> <span class="nf">_safe_tcsetpgrp</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">pgrp</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Set |pgrp| as the controller of the tty |fd|.&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">curr_pgrp</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">tcgetpgrp</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="c1"># This can come up when the fd is not connected to a terminal.</span>
+        <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">ENOTTY</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">raise</span>
+
+    <span class="c1"># We can change the owner only if currently own it.  Otherwise we&#39;ll get</span>
+    <span class="c1"># stopped by the kernel with SIGTTOU and that&#39;ll hit the whole group.</span>
+    <span class="k">if</span> <span class="n">curr_pgrp</span> <span class="o">==</span> <span class="n">os</span><span class="o">.</span><span class="n">getpgrp</span><span class="p">():</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">tcsetpgrp</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">pgrp</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="create_pidns"><a class="viewcode-back" href="../../../api/snakeoil.process.namespaces.html#snakeoil.process.namespaces.create_pidns">[docs]</a><span class="k">def</span> <span class="nf">create_pidns</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Start a new pid namespace</span>
+
+<span class="sd">    This will launch all the right manager processes.  The child that returns</span>
+<span class="sd">    will be isolated in a new pid namespace.</span>
+
+<span class="sd">    If functionality is not available, then it will return w/out doing anything.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The last pid outside of the namespace.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">first_pid</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># First create the namespace.</span>
+        <span class="n">unshare</span><span class="p">(</span><span class="n">CLONE_NEWPID</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">EINVAL</span><span class="p">:</span>
+            <span class="c1"># For older kernels, or the functionality is disabled in the config,</span>
+            <span class="c1"># return silently.  We don&#39;t want to hard require this stuff.</span>
+            <span class="k">return</span> <span class="n">first_pid</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># For all other errors, abort.  They shouldn&#39;t happen.</span>
+            <span class="k">raise</span>
+
+    <span class="c1"># Now that we&#39;re in the new pid namespace, fork.  The parent is the master</span>
+    <span class="c1"># of it in the original namespace, so it only monitors the child inside it.</span>
+    <span class="c1"># It is only allowed to fork once too.</span>
+    <span class="k">if</span> <span class="n">pid</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">fork</span><span class="p">():</span>
+        <span class="c1"># Mask SIGINT with the assumption that the child will catch &amp; process it.</span>
+        <span class="c1"># We&#39;ll pass that back up below.</span>
+        <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIG_IGN</span><span class="p">)</span>
+
+        <span class="c1"># Forward the control of the terminal to the child so it can manage input.</span>
+        <span class="n">_safe_tcsetpgrp</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">pid</span><span class="p">)</span>
+
+        <span class="c1"># Reap the children as the parent of the new namespace.</span>
+        <span class="n">exit_as_status</span><span class="p">(</span><span class="n">_reap_children</span><span class="p">(</span><span class="n">pid</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Make sure to unshare the existing mount point if needed.  Some distros</span>
+        <span class="c1"># create shared mount points everywhere by default.</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">_mount</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;/proc&#39;</span><span class="p">,</span> <span class="s1">&#39;proc&#39;</span><span class="p">,</span> <span class="n">MS_PRIVATE</span> <span class="o">|</span> <span class="n">MS_REC</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">EINVAL</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+        <span class="c1"># The child needs its own proc mount as it&#39;ll be different.</span>
+        <span class="n">_mount</span><span class="p">(</span>
+            <span class="s1">&#39;proc&#39;</span><span class="p">,</span> <span class="s1">&#39;/proc&#39;</span><span class="p">,</span> <span class="s1">&#39;proc&#39;</span><span class="p">,</span>
+            <span class="n">MS_NOSUID</span> <span class="o">|</span> <span class="n">MS_NODEV</span> <span class="o">|</span> <span class="n">MS_NOEXEC</span> <span class="o">|</span> <span class="n">MS_RELATIME</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">pid</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">fork</span><span class="p">():</span>
+            <span class="c1"># Mask SIGINT with the assumption that the child will catch &amp; process it.</span>
+            <span class="c1"># We&#39;ll pass that back up below.</span>
+            <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIG_IGN</span><span class="p">)</span>
+
+            <span class="c1"># Now that we&#39;re in a new pid namespace, start a new process group so that</span>
+            <span class="c1"># children have something valid to use.  Otherwise getpgrp/etc... will get</span>
+            <span class="c1"># back 0 which tends to confuse -- you can&#39;t setpgrp(0) for example.</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">setpgrp</span><span class="p">()</span>
+
+            <span class="c1"># Forward the control of the terminal to the child so it can manage input.</span>
+            <span class="n">_safe_tcsetpgrp</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">pid</span><span class="p">)</span>
+
+            <span class="c1"># Watch all of the children.  We need to act as the master inside the</span>
+            <span class="c1"># namespace and reap old processes.</span>
+            <span class="n">exit_as_status</span><span class="p">(</span><span class="n">_reap_children</span><span class="p">(</span><span class="n">pid</span><span class="p">))</span>
+
+    <span class="c1"># Create a process group for the grandchild so it can manage things</span>
+    <span class="c1"># independent of the init process.</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">setpgrp</span><span class="p">()</span>
+
+    <span class="c1"># The grandchild will return and take over the rest of the sdk steps.</span>
+    <span class="k">return</span> <span class="n">first_pid</span></div>
+
+
+<div class="viewcode-block" id="create_netns"><a class="viewcode-back" href="../../../api/snakeoil.process.namespaces.html#snakeoil.process.namespaces.create_netns">[docs]</a><span class="k">def</span> <span class="nf">create_netns</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Start a new net namespace</span>
+
+<span class="sd">    We will bring up the loopback interface, but that is all.</span>
+
+<span class="sd">    If functionality is not available, then it will return w/out doing anything.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># The net namespace was added in 2.6.24 and may be disabled in the kernel.</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">unshare</span><span class="p">(</span><span class="n">CLONE_NEWNET</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">EINVAL</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># For all other errors, abort.  They shouldn&#39;t happen.</span>
+            <span class="k">raise</span>
+
+    <span class="c1"># Since we&#39;ve unshared the net namespace, we need to bring up loopback.</span>
+    <span class="c1"># The kernel automatically adds the various ip addresses, so skip that.</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="s1">&#39;ip&#39;</span><span class="p">,</span> <span class="s1">&#39;link&#39;</span><span class="p">,</span> <span class="s1">&#39;set&#39;</span><span class="p">,</span> <span class="s1">&#39;up&#39;</span><span class="p">,</span> <span class="s1">&#39;lo&#39;</span><span class="p">])</span>
+    <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">ENOENT</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s1">&#39;warning: could not bring up loopback for network; &#39;</span>
+                <span class="s1">&#39;install the iproute2 package</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span></div>
+
+
+<div class="viewcode-block" id="create_utsns"><a class="viewcode-back" href="../../../api/snakeoil.process.namespaces.html#snakeoil.process.namespaces.create_utsns">[docs]</a><span class="k">def</span> <span class="nf">create_utsns</span><span class="p">(</span><span class="n">hostname</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Start a new UTS namespace</span>
+
+<span class="sd">    If functionality is not available, then it will return w/out doing anything.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># The UTS namespace was added 2.6.19 and may be disabled in the kernel.</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">unshare</span><span class="p">(</span><span class="n">CLONE_NEWUTS</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">EINVAL</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span>
+
+    <span class="c1"># hostname/domainname default to the parent namespace settings if unset</span>
+    <span class="k">if</span> <span class="n">hostname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">socket</span><span class="o">.</span><span class="n">sethostname</span><span class="p">(</span><span class="n">hostname</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="create_userns"><a class="viewcode-back" href="../../../api/snakeoil.process.namespaces.html#snakeoil.process.namespaces.create_userns">[docs]</a><span class="k">def</span> <span class="nf">create_userns</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Start a new user namespace</span>
+
+<span class="sd">    If functionality is not available, then it will return w/out doing anything.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Get original uid/gid values before they&#39;re changed on entering the namespace.</span>
+    <span class="n">uid</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getuid</span><span class="p">()</span>
+    <span class="n">gid</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getgid</span><span class="p">()</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">unshare</span><span class="p">(</span><span class="n">CLONE_NEWUSER</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">EINVAL</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># For all other errors, abort.  They shouldn&#39;t happen.</span>
+            <span class="k">raise</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;/proc/self/setgroups&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;deny&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;/proc/self/uid_map&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;0 </span><span class="si">%s</span><span class="s1"> 1</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">uid</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;/proc/self/gid_map&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;0 </span><span class="si">%s</span><span class="s1"> 1</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">gid</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="simple_unshare"><a class="viewcode-back" href="../../../api/snakeoil.process.namespaces.html#snakeoil.process.namespaces.simple_unshare">[docs]</a><span class="k">def</span> <span class="nf">simple_unshare</span><span class="p">(</span><span class="n">mount</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">uts</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ipc</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">net</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">pid</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                   <span class="n">user</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">hostname</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Simpler helper for setting up namespaces quickly.</span>
+
+<span class="sd">    If support for any namespace type is not available, we&#39;ll silently skip it.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        mount: Create a mount namespace.</span>
+<span class="sd">        uts: Create a UTS namespace.</span>
+<span class="sd">        ipc: Create an IPC namespace.</span>
+<span class="sd">        net: Create a net namespace.</span>
+<span class="sd">        pid: Create a pid namespace.</span>
+<span class="sd">        user: Create a user namespace.</span>
+<span class="sd">        hostname: hostname to use for the UTS namespace</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># user namespace must be first</span>
+    <span class="k">if</span> <span class="n">user</span><span class="p">:</span>
+        <span class="n">create_userns</span><span class="p">()</span>
+
+    <span class="c1"># The mount namespace is the only one really guaranteed to exist --</span>
+    <span class="c1"># it&#39;s been supported forever and it cannot be turned off.</span>
+    <span class="k">if</span> <span class="n">mount</span><span class="p">:</span>
+        <span class="n">unshare</span><span class="p">(</span><span class="n">CLONE_NEWNS</span><span class="p">)</span>
+
+        <span class="c1"># Avoid mounts in the new namespace from affecting the parent namespace</span>
+        <span class="c1"># on systems that share the rootfs by default, but allow events in the</span>
+        <span class="c1"># parent to propagate down.</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">_mount</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">MS_REC</span> <span class="o">|</span> <span class="n">MS_SLAVE</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">EINVAL</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+    <span class="k">if</span> <span class="n">uts</span><span class="p">:</span>
+        <span class="n">create_utsns</span><span class="p">(</span><span class="n">hostname</span><span class="p">)</span>
+
+    <span class="c1"># The IPC namespace was added 2.6.19 and may be disabled in the kernel.</span>
+    <span class="k">if</span> <span class="n">ipc</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">unshare</span><span class="p">(</span><span class="n">CLONE_NEWIPC</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">EINVAL</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+    <span class="k">if</span> <span class="n">net</span><span class="p">:</span>
+        <span class="n">create_netns</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">pid</span><span class="p">:</span>
+        <span class="n">create_pidns</span><span class="p">()</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../process.html" >snakeoil.process</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.process.namespaces</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

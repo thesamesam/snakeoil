@@ -1,0 +1,269 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>snakeoil.containers module &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="snakeoil.contexts module" href="snakeoil.contexts.html" />
+    <link rel="prev" title="snakeoil.compatibility module" href="snakeoil.compatibility.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.contexts.html" title="snakeoil.contexts module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.compatibility.html" title="snakeoil.compatibility module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" accesskey="U">snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.containers module</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-snakeoil.containers">
+<span id="snakeoil-containers-module"></span><h1>snakeoil.containers module<a class="headerlink" href="#module-snakeoil.containers" title="Permalink to this heading">¶</a></h1>
+<p>Container classes and functionality for implementing them</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.containers.InvertedContains">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.containers.</span></span><span class="sig-name descname"><span class="pre">InvertedContains</span></span><a class="reference internal" href="../_modules/snakeoil/containers.html#InvertedContains"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.containers.InvertedContains" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">set</span></code></a></p>
+<p>Set that inverts all contains lookup results.</p>
+<p>Essentially, it’s a set class usable for blacklist containment testing.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.containers</span> <span class="kn">import</span> <span class="n">InvertedContains</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">inverted</span> <span class="o">=</span> <span class="n">InvertedContains</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="mi">1</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">inverted</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="mi">11</span> <span class="ow">in</span> <span class="n">inverted</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">inverted</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">11</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="mi">11</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">inverted</span>
+</pre></div>
+</div>
+<p>Please note it cannot be iterated over due to the essentially
+infinite series it represents.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.containers.LimitedChangeSet">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.containers.</span></span><span class="sig-name descname"><span class="pre">LimitedChangeSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">initial_keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unchangable_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_validator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/containers.html#LimitedChangeSet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.containers.LimitedChangeSet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#snakeoil.containers.SetMixin" title="snakeoil.containers.SetMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SetMixin</span></code></a></p>
+<p>Set used to limit the number of times a key can be removed/added.</p>
+<p>specifically deleting/adding a key only once per commit,
+optionally blocking changes to certain keys.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.containers</span> <span class="kn">import</span> <span class="n">LimitedChangeSet</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">myset</span> <span class="o">=</span> <span class="n">LimitedChangeSet</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">unchangable_keys</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="mi">1</span> <span class="ow">in</span> <span class="n">myset</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">myset</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">myset</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> 
+<span class="gt">Traceback (most recent call last):</span>
+<span class="gr">Unchangable</span>: <span class="n">key &#39;1&#39; is unchangable</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">myset</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="c1"># remove it, so we can try adding it</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="mi">2</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">myset</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">myset</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> 
+<span class="gt">Traceback (most recent call last):</span>
+<span class="gr">Unchangable</span>: <span class="n">key &#39;2&#39; is unchangable</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.containers.LimitedChangeSet.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/containers.html#LimitedChangeSet.add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.containers.LimitedChangeSet.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add an element to a set.</p>
+<p>This has no effect if the element is already present.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.containers.LimitedChangeSet.changes_count">
+<span class="sig-name descname"><span class="pre">changes_count</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/containers.html#LimitedChangeSet.changes_count"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.containers.LimitedChangeSet.changes_count" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.containers.LimitedChangeSet.commit">
+<span class="sig-name descname"><span class="pre">commit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/containers.html#LimitedChangeSet.commit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.containers.LimitedChangeSet.commit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.containers.LimitedChangeSet.remove">
+<span class="sig-name descname"><span class="pre">remove</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/containers.html#LimitedChangeSet.remove"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.containers.LimitedChangeSet.remove" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove an element from a set; it must be a member.</p>
+<p>If the element is not a member, raise a KeyError.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.containers.LimitedChangeSet.rollback">
+<span class="sig-name descname"><span class="pre">rollback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">point</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/containers.html#LimitedChangeSet.rollback"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.containers.LimitedChangeSet.rollback" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.containers.ProtectedSet">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.containers.</span></span><span class="sig-name descname"><span class="pre">ProtectedSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">orig_set</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/containers.html#ProtectedSet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.containers.ProtectedSet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#snakeoil.containers.SetMixin" title="snakeoil.containers.SetMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SetMixin</span></code></a></p>
+<p>Wraps a set pushing all changes into a secondary set.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.containers</span> <span class="kn">import</span> <span class="n">ProtectedSet</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">myset</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">protected</span> <span class="o">=</span> <span class="n">ProtectedSet</span><span class="p">(</span><span class="n">myset</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">protected</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="mi">4</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">myset</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="mi">4</span> <span class="ow">in</span> <span class="n">protected</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="mi">2</span> <span class="ow">in</span> <span class="n">protected</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">myset</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="mi">2</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">protected</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.containers.ProtectedSet.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/containers.html#ProtectedSet.add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.containers.ProtectedSet.add" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.containers.RefCountingSet">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.containers.</span></span><span class="sig-name descname"><span class="pre">RefCountingSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/containers.html#RefCountingSet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.containers.RefCountingSet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+<p>Set implementation that implements refcounting for add/remove, removing the key only when its refcount is 0.</p>
+<p>This is particularly useful for essentially summing sequences that are a stream of additions/removals</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.containers</span> <span class="kn">import</span> <span class="n">RefCountingSet</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">myset</span> <span class="o">=</span> <span class="n">RefCountingSet</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">myset</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">myset</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">list</span><span class="p">(</span><span class="n">myset</span><span class="p">)</span> <span class="o">==</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">myset</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">list</span><span class="p">(</span><span class="n">myset</span><span class="p">)</span> <span class="o">==</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">myset</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">list</span><span class="p">(</span><span class="n">myset</span><span class="p">)</span> <span class="o">==</span> <span class="p">[]</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.containers.RefCountingSet.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/containers.html#RefCountingSet.add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.containers.RefCountingSet.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add an element to a set.</p>
+<p>This has no effect if the element is already present.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.containers.RefCountingSet.discard">
+<span class="sig-name descname"><span class="pre">discard</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/containers.html#RefCountingSet.discard"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.containers.RefCountingSet.discard" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove an element from a set if it is a member.</p>
+<p>If the element is not a member, do nothing.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.containers.RefCountingSet.remove">
+<span class="sig-name descname"><span class="pre">remove</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/containers.html#RefCountingSet.remove"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.containers.RefCountingSet.remove" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove an element from a set; it must be a member.</p>
+<p>If the element is not a member, raise a KeyError.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.containers.RefCountingSet.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">items</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/containers.html#RefCountingSet.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.containers.RefCountingSet.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update a set with the union of itself and others.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.containers.SetMixin">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.containers.</span></span><span class="sig-name descname"><span class="pre">SetMixin</span></span><a class="reference internal" href="../_modules/snakeoil/containers.html#SetMixin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.containers.SetMixin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Base class for implementing set classes</p>
+<p>Subclasses must provide __init__, __iter__ and __contains__.</p>
+<p>Note that this is a stripped down base; it primarily implements the core
+math protocols, methods like symmetric_difference aren’t defined here.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="snakeoil.containers.Unchangable">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.containers.</span></span><span class="sig-name descname"><span class="pre">Unchangable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/containers.html#Unchangable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.containers.Unchangable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="snakeoil.compatibility.html"
+                          title="previous chapter">snakeoil.compatibility module</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="snakeoil.contexts.html"
+                          title="next chapter">snakeoil.contexts module</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.contexts.html" title="snakeoil.contexts module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.compatibility.html" title="snakeoil.compatibility module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.containers module</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

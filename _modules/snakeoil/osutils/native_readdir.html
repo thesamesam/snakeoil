@@ -1,0 +1,177 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>snakeoil.osutils.native_readdir &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../osutils.html" accesskey="U">snakeoil.osutils</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.osutils.native_readdir</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for snakeoil.osutils.native_readdir</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Wrapper for readdir which grabs file type from d_type.&quot;&quot;&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">errno</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">stat</span> <span class="kn">import</span> <span class="p">(</span><span class="n">S_IFBLK</span><span class="p">,</span> <span class="n">S_IFCHR</span><span class="p">,</span> <span class="n">S_IFDIR</span><span class="p">,</span> <span class="n">S_IFIFO</span><span class="p">,</span> <span class="n">S_IFLNK</span><span class="p">,</span> <span class="n">S_IFMT</span><span class="p">,</span> <span class="n">S_IFREG</span><span class="p">,</span> <span class="n">S_IFSOCK</span><span class="p">,</span> <span class="n">S_ISDIR</span><span class="p">,</span>
+                  <span class="n">S_ISREG</span><span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">..mappings</span> <span class="kn">import</span> <span class="n">ProtectedDict</span>
+
+<span class="n">listdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span>
+
+<span class="c1"># we can still use the cpy pjoin here, just need to do something about the</span>
+<span class="c1"># import cycle.</span>
+<span class="n">pjoin</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span>
+
+<div class="viewcode-block" id="stat_swallow_enoent"><a class="viewcode-back" href="../../../api/snakeoil.osutils.native_readdir.html#snakeoil.osutils.stat_swallow_enoent">[docs]</a><span class="k">def</span> <span class="nf">stat_swallow_enoent</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">check</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">stat</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">check</span><span class="p">(</span><span class="n">stat</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">st_mode</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">oe</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">oe</span><span class="o">.</span><span class="n">errno</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">ENOENT</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">default</span>
+        <span class="k">raise</span></div>
+
+<div class="viewcode-block" id="listdir_dirs"><a class="viewcode-back" href="../../../api/snakeoil.osutils.native_readdir.html#snakeoil.osutils.listdir_dirs">[docs]</a><span class="k">def</span> <span class="nf">listdir_dirs</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">followSymlinks</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of all subdirectories within a directory</span>
+
+<span class="sd">    :param path: directory to scan</span>
+<span class="sd">    :param followSymlinks: this controls if symlinks are resolved.</span>
+<span class="sd">        If True and the symlink resolves to a directory, it is returned,</span>
+<span class="sd">        else if False it isn&#39;t returned.</span>
+<span class="sd">    :return: list of directories within `path`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">scheck</span> <span class="o">=</span> <span class="n">S_ISDIR</span>
+    <span class="n">pjf</span> <span class="o">=</span> <span class="n">pjoin</span>
+    <span class="n">lstat</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">lstat</span>
+    <span class="k">if</span> <span class="n">followSymlinks</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">if</span>
+                <span class="n">stat_swallow_enoent</span><span class="p">(</span><span class="n">pjf</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">x</span><span class="p">),</span> <span class="n">scheck</span><span class="p">)]</span>
+    <span class="n">lstat</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">lstat</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">if</span>
+            <span class="n">scheck</span><span class="p">(</span><span class="n">lstat</span><span class="p">(</span><span class="n">pjf</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span><span class="o">.</span><span class="n">st_mode</span><span class="p">)]</span></div>
+
+<div class="viewcode-block" id="listdir_files"><a class="viewcode-back" href="../../../api/snakeoil.osutils.native_readdir.html#snakeoil.osutils.listdir_files">[docs]</a><span class="k">def</span> <span class="nf">listdir_files</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">followSymlinks</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of all files within a directory</span>
+
+<span class="sd">    :param path: directory to scan</span>
+<span class="sd">    :param followSymlinks: this controls if symlinks are resolved.</span>
+<span class="sd">        If True and the symlink resolves to a file, it is returned,</span>
+<span class="sd">        else if False it isn&#39;t returned.</span>
+<span class="sd">    :return: list of files within `path`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">scheck</span> <span class="o">=</span> <span class="n">S_ISREG</span>
+    <span class="n">pjf</span> <span class="o">=</span> <span class="n">pjoin</span>
+    <span class="k">if</span> <span class="n">followSymlinks</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">if</span>
+                <span class="n">stat_swallow_enoent</span><span class="p">(</span><span class="n">pjf</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">x</span><span class="p">),</span> <span class="n">scheck</span><span class="p">)]</span>
+    <span class="n">lstat</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">lstat</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">if</span>
+            <span class="n">scheck</span><span class="p">(</span><span class="n">lstat</span><span class="p">(</span><span class="n">pjf</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span><span class="o">.</span><span class="n">st_mode</span><span class="p">)]</span></div>
+
+<span class="c1"># we store this outside the function to ensure that</span>
+<span class="c1"># the strings used are reused, thus avoiding unneeded</span>
+<span class="c1"># allocations</span>
+<span class="n">d_type_mapping</span> <span class="o">=</span> <span class="n">ProtectedDict</span><span class="p">({</span>
+    <span class="n">S_IFREG</span><span class="p">:</span> <span class="s2">&quot;file&quot;</span><span class="p">,</span>
+    <span class="n">S_IFDIR</span><span class="p">:</span> <span class="s2">&quot;directory&quot;</span><span class="p">,</span>
+    <span class="n">S_IFLNK</span><span class="p">:</span> <span class="s2">&quot;symlink&quot;</span><span class="p">,</span>
+    <span class="n">S_IFCHR</span><span class="p">:</span> <span class="s2">&quot;chardev&quot;</span><span class="p">,</span>
+    <span class="n">S_IFBLK</span><span class="p">:</span> <span class="s2">&quot;block&quot;</span><span class="p">,</span>
+    <span class="n">S_IFSOCK</span><span class="p">:</span> <span class="s2">&quot;socket&quot;</span><span class="p">,</span>
+    <span class="n">S_IFIFO</span><span class="p">:</span> <span class="s2">&quot;fifo&quot;</span><span class="p">,</span>
+<span class="p">})</span>
+
+<div class="viewcode-block" id="readdir"><a class="viewcode-back" href="../../../api/snakeoil.osutils.native_readdir.html#snakeoil.osutils.readdir">[docs]</a><span class="k">def</span> <span class="nf">readdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given a directory, return a list of (filename, filetype)</span>
+
+<span class="sd">    see :py:data:`d_type_mappings` for the translation used</span>
+
+<span class="sd">    :param path: path of a directory to scan</span>
+<span class="sd">    :return: list of (filename, filetype)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pjf</span> <span class="o">=</span> <span class="n">pjoin</span>
+    <span class="n">things</span> <span class="o">=</span> <span class="n">listdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">lstat</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">lstat</span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="n">d_type_mapping</span>
+    <span class="k">return</span> <span class="p">[(</span><span class="n">name</span><span class="p">,</span> <span class="n">dt</span><span class="p">[</span><span class="n">S_IFMT</span><span class="p">(</span><span class="n">lstat</span><span class="p">(</span><span class="n">pjf</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span><span class="o">.</span><span class="n">st_mode</span><span class="p">)])</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">things</span><span class="p">]</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../osutils.html" >snakeoil.osutils</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.osutils.native_readdir</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,250 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>snakeoil.chksum &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.chksum</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for snakeoil.chksum</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">chksum verification/generation subsystem</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">importlib</span> <span class="kn">import</span> <span class="n">import_module</span>
+
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">klass</span><span class="p">,</span> <span class="n">osutils</span>
+<span class="kn">from</span> <span class="nn">.defaults</span> <span class="kn">import</span> <span class="n">chksum_loop_over_file</span>
+
+<span class="n">chksum_types</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">__inited__</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<div class="viewcode-block" id="MissingChksumHandler"><a class="viewcode-back" href="../../api/snakeoil.chksum.html#snakeoil.chksum.MissingChksumHandler">[docs]</a><span class="k">class</span> <span class="nc">MissingChksumHandler</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A requested checksum handler doesn&#39;t exist on the system.&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="get_handler"><a class="viewcode-back" href="../../api/snakeoil.chksum.html#snakeoil.chksum.get_handler">[docs]</a><span class="k">def</span> <span class="nf">get_handler</span><span class="p">(</span><span class="n">requested</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    get a chksum handler</span>
+
+<span class="sd">    :raise MissingChksumHandler: if chksum type has no registered handler</span>
+<span class="sd">    :return: chksum handler (callable)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">__inited__</span><span class="p">:</span>
+        <span class="n">init</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">requested</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">chksum_types</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">MissingChksumHandler</span><span class="p">(</span><span class="s2">&quot;no handler for </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">requested</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">chksum_types</span><span class="p">[</span><span class="n">requested</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="get_handlers"><a class="viewcode-back" href="../../api/snakeoil.chksum.html#snakeoil.chksum.get_handlers">[docs]</a><span class="k">def</span> <span class="nf">get_handlers</span><span class="p">(</span><span class="n">requested</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    get multiple chksum handlers</span>
+
+<span class="sd">    :param requested: None (all handlers), or a sequence of the specific</span>
+<span class="sd">        handlers desired.</span>
+<span class="sd">    :raise MissingChksumHandler: if requested chksum type has no registered handler</span>
+<span class="sd">    :return: dict of chksum_type:chksum handler</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">requested</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">__inited__</span><span class="p">:</span>
+            <span class="n">init</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">chksum_types</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">requested</span><span class="p">:</span>
+        <span class="n">d</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_handler</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">d</span></div>
+
+
+<div class="viewcode-block" id="init"><a class="viewcode-back" href="../../api/snakeoil.chksum.html#snakeoil.chksum.init">[docs]</a><span class="k">def</span> <span class="nf">init</span><span class="p">(</span><span class="n">additional_handlers</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    init the chksum subsystem.</span>
+
+<span class="sd">    Scan dirname(__file__), find what handlers are available, and load them.</span>
+
+<span class="sd">    :param additional_handlers: None, or pass in a dict of type:func</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">global</span> <span class="n">__inited__</span> <span class="c1"># pylint: disable=global-statement</span>
+
+    <span class="k">if</span> <span class="n">additional_handlers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">additional_handlers</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;additional handlers must be a dict!&quot;</span><span class="p">)</span>
+
+    <span class="n">chksum_types</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="n">__inited__</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">loc</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="vm">__name__</span><span class="p">]</span><span class="o">.</span><span class="vm">__file__</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">osutils</span><span class="o">.</span><span class="n">listdir_files</span><span class="p">(</span><span class="n">loc</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">f</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.py&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;__init__.&quot;</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">f</span> <span class="o">=</span> <span class="n">f</span><span class="p">[:</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">del</span> <span class="n">i</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="n">f</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">types</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;chksum_types&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="c1"># no go.</span>
+            <span class="k">continue</span>
+        <span class="n">chksum_types</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">types</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">additional_handlers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">chksum_types</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">additional_handlers</span><span class="p">)</span>
+
+    <span class="n">__inited__</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="get_chksums"><a class="viewcode-back" href="../../api/snakeoil.chksum.html#snakeoil.chksum.get_chksums">[docs]</a><span class="k">def</span> <span class="nf">get_chksums</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="o">*</span><span class="n">chksums</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    run multiple chksumers over a data_source/file path</span>
+
+<span class="sd">    Note that if you need multiple chksums for a file, you should invoke this with</span>
+<span class="sd">    all desired chksums- the implementation will do some internal efficiency tricks</span>
+<span class="sd">    (doing the IO once for example).</span>
+
+<span class="sd">    :param location: either a data_source, or a filepath to generate chksum data for</span>
+<span class="sd">    :param chksums: variable arg, the name of the chksums desired.  These need to</span>
+<span class="sd">        be valid chksums known in `chksum_types`</span>
+<span class="sd">    :return: a list of chksums, matching the order of requested chksums</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">chksums</span><span class="p">:</span>
+        <span class="c1"># dumb api invocation...</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="n">handlers</span> <span class="o">=</span> <span class="n">get_handlers</span><span class="p">(</span><span class="n">chksums</span><span class="p">)</span>
+    <span class="c1"># try to hand off to the per file handler, may be faster.</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">chksums</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">handlers</span><span class="p">[</span><span class="n">chksums</span><span class="p">[</span><span class="mi">0</span><span class="p">]](</span><span class="n">location</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">chksums</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="s1">&#39;size&#39;</span> <span class="ow">in</span> <span class="n">chksums</span><span class="p">:</span>
+        <span class="n">parallelize</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">parallelize</span> <span class="o">=</span> <span class="n">kwds</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parallelize&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="n">can_mmap</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">chksums</span><span class="p">:</span>
+        <span class="n">can_mmap</span> <span class="o">&amp;=</span> <span class="n">handlers</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">can_mmap</span>
+    <span class="k">return</span> <span class="n">chksum_loop_over_file</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="p">[</span><span class="n">handlers</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">new</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">chksums</span><span class="p">],</span>
+                                 <span class="n">parallelize</span><span class="o">=</span><span class="n">parallelize</span><span class="p">,</span> <span class="n">can_mmap</span><span class="o">=</span><span class="n">can_mmap</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LazilyHashedPath"><a class="viewcode-back" href="../../api/snakeoil.chksum.html#snakeoil.chksum.LazilyHashedPath">[docs]</a><span class="k">class</span> <span class="nc">LazilyHashedPath</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">klass</span><span class="o">.</span><span class="n">immutable_instance</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Given a pathway, compute chksums on demand via attribute access.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="n">initial_values</span><span class="p">):</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span>
+        <span class="n">f</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;path&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">initial_values</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">f</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">attr</span><span class="o">.</span><span class="n">islower</span><span class="p">():</span>
+            <span class="c1"># Disallow sHa1.</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">attr</span> <span class="o">==</span> <span class="s1">&#39;mtime&#39;</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">osutils</span><span class="o">.</span><span class="n">stat_mtime_long</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">get_chksums</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">attr</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">except</span> <span class="n">MissingChksumHandler</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">val</span>
+
+<div class="viewcode-block" id="LazilyHashedPath.clear"><a class="viewcode-back" href="../../api/snakeoil.chksum.html#snakeoil.chksum.LazilyHashedPath.clear">[docs]</a>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">get_handlers</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+                <span class="nb">delattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__getstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__setstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">state</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.chksum</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

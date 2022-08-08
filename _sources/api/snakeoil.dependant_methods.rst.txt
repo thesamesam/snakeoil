@@ -1,0 +1,7 @@
+snakeoil.dependant\_methods module
+==================================
+
+.. automodule:: snakeoil.dependant_methods
+   :members:
+   :undoc-members:
+   :show-inheritance:

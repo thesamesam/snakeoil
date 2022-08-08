@@ -1,0 +1,413 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>snakeoil.bash &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.bash</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for snakeoil.bash</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Functionality for reading bash like files</span>
+
+<span class="sd">Please note that while this functionality can do variable interpolation,</span>
+<span class="sd">it strictly treats the source as non-executable code.  It cannot parse</span>
+<span class="sd">subshells, variable additions, etc.</span>
+
+<span class="sd">Its primary usage is for reading things like gentoo make.conf&#39;s, or</span>
+<span class="sd">libtool .la files that are bash compatible, but non-executable.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">shlex</span> <span class="kn">import</span> <span class="n">shlex</span>
+
+<span class="kn">from</span> <span class="nn">.demandload</span> <span class="kn">import</span> <span class="n">demand_compile_regexp</span>
+<span class="kn">from</span> <span class="nn">.fileutils</span> <span class="kn">import</span> <span class="n">readlines</span>
+<span class="kn">from</span> <span class="nn">.log</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">.mappings</span> <span class="kn">import</span> <span class="n">ProtectedDict</span>
+
+<span class="n">demand_compile_regexp</span><span class="p">(</span><span class="s1">&#39;line_cont_regexp&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;^(.*[^</span><span class="se">\\</span><span class="s1">]|)</span><span class="se">\\</span><span class="s1">$&#39;</span><span class="p">)</span>
+<span class="n">demand_compile_regexp</span><span class="p">(</span><span class="s1">&#39;inline_comment_regexp&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;^.*\s#.*$&#39;</span><span class="p">)</span>
+<span class="n">demand_compile_regexp</span><span class="p">(</span><span class="s1">&#39;var_find&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">?(\${\w+}|\$\w+)&#39;</span><span class="p">)</span>
+<span class="n">demand_compile_regexp</span><span class="p">(</span><span class="s1">&#39;backslash_find&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">.&#39;</span><span class="p">)</span>
+<span class="n">demand_compile_regexp</span><span class="p">(</span><span class="s1">&#39;ansi_escape_re&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]&#39;</span><span class="p">)</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;iter_read_bash&quot;</span><span class="p">,</span> <span class="s2">&quot;read_bash&quot;</span><span class="p">,</span> <span class="s2">&quot;read_dict&quot;</span><span class="p">,</span> <span class="s2">&quot;read_bash_dict&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;bash_parser&quot;</span><span class="p">,</span> <span class="s2">&quot;BashParseError&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="iter_read_bash"><a class="viewcode-back" href="../../api/snakeoil.bash.html#snakeoil.bash.iter_read_bash">[docs]</a><span class="k">def</span> <span class="nf">iter_read_bash</span><span class="p">(</span><span class="n">bash_source</span><span class="p">,</span> <span class="n">allow_inline_comments</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                   <span class="n">allow_line_cont</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">enum_line</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Iterate over a file honoring bash commenting rules and line continuations.</span>
+
+<span class="sd">    Note that it&#39;s considered good behaviour to close filehandles, as</span>
+<span class="sd">    such, either iterate fully through this, or use read_bash instead.</span>
+<span class="sd">    Once the file object is no longer referenced the handle will be</span>
+<span class="sd">    closed, but be proactive instead of relying on the garbage</span>
+<span class="sd">    collector.</span>
+
+<span class="sd">    :param bash_source: either a file to read from</span>
+<span class="sd">        or a string holding the filename to open.</span>
+<span class="sd">    :param allow_inline_comments: whether or not to prune characters</span>
+<span class="sd">        after a # that isn&#39;t at the start of a line.</span>
+<span class="sd">    :param allow_line_cont: whether or not to respect line continuations</span>
+<span class="sd">    :return: yields lines w/ commenting stripped out</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bash_source</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">bash_source</span> <span class="o">=</span> <span class="n">readlines</span><span class="p">(</span><span class="n">bash_source</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">for</span> <span class="n">lineno</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bash_source</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">allow_line_cont</span> <span class="ow">and</span> <span class="n">s</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">+=</span> <span class="n">line</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">s</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;#&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">allow_inline_comments</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">allow_line_cont</span> <span class="ow">or</span>
+                            <span class="p">(</span><span class="n">allow_line_cont</span> <span class="ow">and</span> <span class="n">inline_comment_regexp</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">line</span><span class="p">))):</span>
+                        <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">allow_line_cont</span> <span class="ow">and</span> <span class="n">line_cont_regexp</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+                    <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="k">if</span> <span class="n">enum_line</span><span class="p">:</span>
+                    <span class="k">yield</span> <span class="n">lineno</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">yield</span> <span class="n">s</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">s</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">enum_line</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">lineno</span><span class="p">,</span> <span class="n">s</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">s</span></div>
+
+
+<div class="viewcode-block" id="read_bash"><a class="viewcode-back" href="../../api/snakeoil.bash.html#snakeoil.bash.read_bash">[docs]</a><span class="k">def</span> <span class="nf">read_bash</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read a file honoring bash commenting rules.</span>
+
+<span class="sd">    See :py:func:`iter_read_bash` for parameter details.</span>
+
+<span class="sd">    Returns a list of lines w/ comments stripped out.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">iter_read_bash</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="read_bash_dict"><a class="viewcode-back" href="../../api/snakeoil.bash.html#snakeoil.bash.read_bash_dict">[docs]</a><span class="k">def</span> <span class="nf">read_bash_dict</span><span class="p">(</span><span class="n">bash_source</span><span class="p">,</span> <span class="n">vars_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sourcing_command</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read bash source, yielding a dict of vars.</span>
+
+<span class="sd">    :param bash_source: either a file to read from</span>
+<span class="sd">        or a string holding the filename to open</span>
+<span class="sd">    :param vars_dict: initial &#39;env&#39; for the sourcing.</span>
+<span class="sd">        Is protected from modification.</span>
+<span class="sd">    :type vars_dict: dict or None</span>
+<span class="sd">    :param sourcing_command: controls whether a source command exists.</span>
+<span class="sd">        If one does and is encountered, then this func is called.</span>
+<span class="sd">    :type sourcing_command: callable</span>
+<span class="sd">    :raise BashParseError: thrown if invalid syntax is encountered.</span>
+<span class="sd">    :return: dict representing the resultant env if bash executed the source.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># quite possibly I&#39;m missing something here, but the original</span>
+    <span class="c1"># portage_util getconfig/varexpand seemed like it only went</span>
+    <span class="c1"># halfway. The shlex posix mode *should* cover everything.</span>
+
+    <span class="k">if</span> <span class="n">vars_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">d</span><span class="p">,</span> <span class="n">protected</span> <span class="o">=</span> <span class="n">ProtectedDict</span><span class="p">(</span><span class="n">vars_dict</span><span class="p">),</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">d</span><span class="p">,</span> <span class="n">protected</span> <span class="o">=</span> <span class="p">{},</span> <span class="kc">False</span>
+
+    <span class="n">close</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">infile</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bash_source</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">bash_source</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="n">close</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">infile</span> <span class="o">=</span> <span class="n">bash_source</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">bash_source</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">bash_parser</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">sourcing_command</span><span class="o">=</span><span class="n">sourcing_command</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="n">d</span><span class="p">,</span> <span class="n">infile</span><span class="o">=</span><span class="n">infile</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">tok</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">while</span> <span class="n">tok</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">get_token</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;export&#39;</span><span class="p">:</span>
+                    <span class="c1"># discard &#39;export&#39; token from &quot;export VAR=VALUE&quot; lines</span>
+                    <span class="n">key</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">get_token</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="k">elif</span> <span class="n">key</span><span class="o">.</span><span class="n">isspace</span><span class="p">():</span>
+                    <span class="c1"># we specifically have to check this, since we&#39;re</span>
+                    <span class="c1"># screwing with the whitespace filters below to</span>
+                    <span class="c1"># detect empty assigns</span>
+                    <span class="k">continue</span>
+                <span class="n">eq</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">get_token</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">eq</span> <span class="o">!=</span> <span class="s1">&#39;=&#39;</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">BashParseError</span><span class="p">(</span>
+                        <span class="n">bash_source</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">lineno</span><span class="p">,</span>
+                        <span class="s2">&quot;got token </span><span class="si">%r</span><span class="s2">, was expecting &#39;=&#39;&quot;</span> <span class="o">%</span> <span class="n">eq</span><span class="p">)</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">get_token</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                <span class="k">elif</span> <span class="n">val</span> <span class="o">==</span> <span class="s1">&#39;export&#39;</span><span class="p">:</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">get_token</span><span class="p">()</span>
+                <span class="c1"># look ahead to see if we just got an empty assign.</span>
+                <span class="n">next_tok</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">get_token</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">next_tok</span> <span class="o">==</span> <span class="s1">&#39;=&#39;</span><span class="p">:</span>
+                    <span class="c1"># ... we did.</span>
+                    <span class="c1"># leftmost insertions, thus reversed ordering</span>
+                    <span class="n">s</span><span class="o">.</span><span class="n">push_token</span><span class="p">(</span><span class="n">next_tok</span><span class="p">)</span>
+                    <span class="n">s</span><span class="o">.</span><span class="n">push_token</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">s</span><span class="o">.</span><span class="n">push_token</span><span class="p">(</span><span class="n">next_tok</span><span class="p">)</span>
+                <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">BashParseError</span><span class="p">(</span><span class="n">bash_source</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">lineno</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span> <span class="kn">from</span> <span class="nn">e</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">close</span> <span class="ow">and</span> <span class="n">f</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">protected</span><span class="p">:</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">new</span>
+    <span class="k">return</span> <span class="n">d</span></div>
+
+
+<div class="viewcode-block" id="read_dict"><a class="viewcode-back" href="../../api/snakeoil.bash.html#snakeoil.bash.read_dict">[docs]</a><span class="k">def</span> <span class="nf">read_dict</span><span class="p">(</span><span class="n">bash_source</span><span class="p">,</span> <span class="n">splitter</span><span class="o">=</span><span class="s2">&quot;=&quot;</span><span class="p">,</span> <span class="n">source_isiter</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+              <span class="n">allow_inline_comments</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">ignore_errors</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read key value pairs from a file, ignoring bash-style comments.</span>
+
+<span class="sd">    :param splitter: the string to split on.  Can be None to</span>
+<span class="sd">        default to str.split&#39;s default</span>
+<span class="sd">    :param bash_source: either a file to read from,</span>
+<span class="sd">        or a string holding the filename to open.</span>
+<span class="sd">    :param allow_inline_comments: whether or not to prune characters</span>
+<span class="sd">        after a # that isn&#39;t at the start of a line.</span>
+<span class="sd">    :param ignore_errors: parse errors are logged instead of raised</span>
+<span class="sd">    :raise: :py:class:`BashParseError` if there are parse errors found.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">source_isiter</span><span class="p">:</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">bash_source</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">iter_read_bash</span><span class="p">(</span>
+            <span class="n">bash_source</span><span class="p">,</span> <span class="n">allow_inline_comments</span><span class="o">=</span><span class="n">allow_inline_comments</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># XXX what to do?</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;&lt;unknown&gt;&#39;</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">bash_source</span>
+    <span class="n">line_count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">i</span><span class="p">:</span>
+            <span class="n">line_count</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">splitter</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">filename</span> <span class="o">==</span> <span class="s2">&quot;&lt;unknown&gt;&quot;</span><span class="p">:</span>
+                    <span class="n">filename</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">bash_source</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">bash_source</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ignore_errors</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                        <span class="s1">&#39;bash parse error in </span><span class="si">%r</span><span class="s1">, line </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">line_count</span><span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">BashParseError</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">line_count</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+            <span class="k">if</span> <span class="n">strip</span><span class="p">:</span>
+                <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">v</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">v</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">and</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">):</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">i</span>
+    <span class="k">return</span> <span class="n">d</span></div>
+
+
+<span class="k">def</span> <span class="nf">_nuke_backslash</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">group</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">s</span> <span class="o">==</span> <span class="s2">&quot;</span><span class="se">\\\n</span><span class="s2">&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">chr</span><span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="bash_parser"><a class="viewcode-back" href="../../api/snakeoil.bash.html#snakeoil.bash.bash_parser">[docs]</a><span class="k">class</span> <span class="nc">bash_parser</span><span class="p">(</span><span class="n">shlex</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Fixed up shlex version for bash parsing.</span>
+
+<span class="sd">    Corrects corner cases in quote expansion and adds variable interpolation.</span>
+<span class="sd">    While it&#39;s a fair bit slower than stdlib shlex, it parses a more complete</span>
+<span class="sd">    subset of bash syntax than stdlib shlex.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">sourcing_command</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">infile</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param source: file handle to read from</span>
+<span class="sd">        :param sourcing_command: token to treat as an include command</span>
+<span class="sd">        :type sourcing_command: either None, or a string; if None, no includes</span>
+<span class="sd">            are allowed in this parsing</span>
+<span class="sd">        :param env: initial environment to use for variable interpolation</span>
+<span class="sd">        :type env: must be a mapping; if None, an empty dict is used</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s1">&#39;state&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">posix</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">infile</span><span class="o">=</span><span class="n">infile</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wordchars</span> <span class="o">+=</span> <span class="s2">&quot;@$</span><span class="si">{}</span><span class="s2">/.-+/:~^*&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wordchars</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wordchars</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sourcing_command</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">sourcing_command</span>
+        <span class="k">if</span> <span class="n">env</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">env</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">env</span> <span class="o">=</span> <span class="n">env</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__pos</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">attr</span> <span class="o">==</span> <span class="s2">&quot;state&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)):</span>
+                <span class="n">strl</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__pos</span> <span class="o">!=</span> <span class="n">strl</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">changed_state</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__pos</span><span class="p">:]))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__pos</span> <span class="o">=</span> <span class="n">strl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+<div class="viewcode-block" id="bash_parser.sourcehook"><a class="viewcode-back" href="../../api/snakeoil.bash.html#snakeoil.bash.bash_parser.sourcehook">[docs]</a>    <span class="k">def</span> <span class="nf">sourcehook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">newfile</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">sourcehook</span><span class="p">(</span><span class="n">newfile</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">BashParseError</span><span class="p">(</span><span class="n">newfile</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span> <span class="kn">from</span> <span class="nn">e</span></div>
+
+<div class="viewcode-block" id="bash_parser.read_token"><a class="viewcode-back" href="../../api/snakeoil.bash.html#snakeoil.bash.bash_parser.read_token">[docs]</a>    <span class="k">def</span> <span class="nf">read_token</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">changed_state</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__pos</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">token</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">read_token</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">token</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">token</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># eof reached.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">changed_state</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">token</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__pos</span><span class="p">:]))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">changed_state</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__pos</span><span class="p">:]))</span>
+        <span class="n">tok</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">changed_state</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">):</span>
+                <span class="n">tok</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">var_expand</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">tok</span> <span class="o">+=</span> <span class="n">t</span>
+        <span class="k">return</span> <span class="n">tok</span></div>
+
+<div class="viewcode-block" id="bash_parser.var_expand"><a class="viewcode-back" href="../../api/snakeoil.bash.html#snakeoil.bash.bash_parser.var_expand">[docs]</a>    <span class="k">def</span> <span class="nf">var_expand</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="n">prev</span><span class="p">,</span> <span class="n">pos</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">while</span> <span class="n">match</span> <span class="o">:=</span> <span class="n">var_find</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">pos</span><span class="p">):</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">val</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">:</span>
+                <span class="c1"># it&#39;s escaped. either it&#39;s \\$ or \\${ , either way,</span>
+                <span class="c1"># skipping two ahead handles it.</span>
+                <span class="n">pos</span> <span class="o">+=</span> <span class="mi">2</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">var</span> <span class="o">=</span> <span class="n">val</span><span class="p">[</span><span class="n">match</span><span class="o">.</span><span class="n">start</span><span class="p">():</span><span class="n">match</span><span class="o">.</span><span class="n">end</span><span class="p">()]</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;$</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">prev</span> <span class="o">!=</span> <span class="n">pos</span><span class="p">:</span>
+                    <span class="n">l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="n">prev</span><span class="p">:</span><span class="n">pos</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">var</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">[</span><span class="n">var</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="s2">&quot;env key </span><span class="si">%r</span><span class="s2"> must be a string, not </span><span class="si">%s</span><span class="s2">: </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                                <span class="n">var</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">[</span><span class="n">var</span><span class="p">]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">[</span><span class="n">var</span><span class="p">]))</span>
+                    <span class="n">l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">[</span><span class="n">var</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+                <span class="n">prev</span> <span class="o">=</span> <span class="n">pos</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">end</span><span class="p">()</span>
+
+        <span class="c1"># do \\ cleansing, collapsing val down also.</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">backslash_find</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">_nuke_backslash</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="o">+</span> <span class="n">val</span><span class="p">[</span><span class="n">prev</span><span class="p">:])</span>
+        <span class="k">return</span> <span class="n">val</span></div></div>
+
+
+<div class="viewcode-block" id="BashParseError"><a class="viewcode-back" href="../../api/snakeoil.bash.html#snakeoil.bash.BashParseError">[docs]</a><span class="k">class</span> <span class="nc">BashParseError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Exception thrown when a handle being parsed isn&#39;t valid bash.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">errmsg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">errmsg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+                <span class="s2">&quot;error parsing &#39;</span><span class="si">%s</span><span class="s2">&#39; on or before line </span><span class="si">%i</span><span class="s2">: err </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span>
+                <span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">errmsg</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+                <span class="s2">&quot;error parsing &#39;</span><span class="si">%s</span><span class="s2">&#39; on or before line </span><span class="si">%i</span><span class="s2">&quot;</span> <span class="o">%</span>
+                <span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">line</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">line</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">errmsg</span> <span class="o">=</span> <span class="n">filename</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">errmsg</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.bash</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

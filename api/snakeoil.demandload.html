@@ -1,0 +1,178 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>snakeoil.demandload module &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="snakeoil.dependant_methods module" href="snakeoil.dependant_methods.html" />
+    <link rel="prev" title="snakeoil.demandimport module" href="snakeoil.demandimport.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.dependant_methods.html" title="snakeoil.dependant_methods module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.demandimport.html" title="snakeoil.demandimport module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" accesskey="U">snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.demandload module</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-snakeoil.demandload">
+<span id="snakeoil-demandload-module"></span><h1>snakeoil.demandload module<a class="headerlink" href="#module-snakeoil.demandload" title="Permalink to this heading">¶</a></h1>
+<p>Demand load things when used.</p>
+<p>This uses <code class="xref py py-func docutils literal notranslate"><span class="pre">Placeholder()</span></code> objects which create an actual object on
+first use and know how to replace themselves with that object, so
+there is no performance penalty after first use.</p>
+<p>This trick is <em>mostly</em> transparent, but there are a few things you
+have to be careful with:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>You may not bind a second name to a placeholder object. Specifically,
+if you demandload C{bar} in module C{foo}, you may not
+C{from foo import bar} in a third module. The placeholder object
+does not “know” it gets imported, so this does not trigger the
+demandload: C{bar} in the third module is the placeholder object.
+When that placeholder gets used it replaces itself with the actual
+module in C{foo} but not in the third module.
+Because this is normally unwanted (it introduces a small
+performance hit) the placeholder object will raise an exception if
+it detects this. But if the demandload gets triggered before the
+third module is imported you do not get that exception, so you
+have to be careful not to import or otherwise pass around the
+placeholder object without triggering it.</p></li>
+<li><p>You may not demandload more than one level of lookups.  Specifically,
+demandload(“os.path”) is not allowed- this would require a “os” fake
+object in the local scope, one which would have a “path” fake object
+pushed into the os object.  This is effectively not much of a limitation;
+you can instead just lazyload ‘path’ directly via demandload(“os:path”).</p></li>
+<li><p>Not all operations on the placeholder object trigger demandload.
+The most common problem is that C{except ExceptionClass} does not
+work if C{ExceptionClass} is a placeholder.
+C{except module.ExceptionClass} with C{module} a placeholder does
+work. You can normally avoid this by always demandloading the module, not
+something in it. Another similar case is that C{isinstance Class} or
+C{issubclass Class} does not work for the initial call since the proper
+class hasn’t replaced the placeholder until after the call. So the first
+call will always return False with subsequent calls working as expected. The
+previously mentioned workaround of demandloading the module works in this
+case as well.</p></li>
+</ul>
+</div></blockquote>
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.demandload.demand_compile_regexp">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.demandload.</span></span><span class="sig-name descname"><span class="pre">demand_compile_regexp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/demandload.html#demand_compile_regexp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.demandload.demand_compile_regexp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Demandloaded version of <a class="reference external" href="https://docs.python.org/3/library/re.html#re.compile" title="(in Python v3.10)"><code class="xref py py-func docutils literal notranslate"><span class="pre">re.compile()</span></code></a>.</p>
+<p>Extra arguments are passed unchanged to <a class="reference external" href="https://docs.python.org/3/library/re.html#re.compile" title="(in Python v3.10)"><code class="xref py py-func docutils literal notranslate"><span class="pre">re.compile()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> – the name of the compiled re object in that scope.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.demandload.demandload">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.demandload.</span></span><span class="sig-name descname"><span class="pre">demandload</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">imports</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/demandload.html#demandload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.demandload.demandload" title="Permalink to this definition">¶</a></dt>
+<dd><p>Import modules into the caller’s global namespace when each is first used.</p>
+<p>Other args are strings listing module names.
+names are handled like this:</p>
+<p>foo            import foo
+<a class="reference external" href="mailto:foo&#37;&#52;&#48;bar">foo<span>&#64;</span>bar</a>        import foo as bar
+foo:bar        from foo import bar
+foo:bar,quux   from foo import bar, quux
+foo.bar:quux   from foo.bar import quux
+foo:baz&#64;quux   from foo import baz as quux</p>
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="snakeoil.demandimport.html"
+                          title="previous chapter">snakeoil.demandimport module</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="snakeoil.dependant_methods.html"
+                          title="next chapter">snakeoil.dependant_methods module</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.dependant_methods.html" title="snakeoil.dependant_methods module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.demandimport.html" title="snakeoil.demandimport module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.demandload module</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

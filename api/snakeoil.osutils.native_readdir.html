@@ -1,0 +1,174 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>snakeoil.osutils.native_readdir module &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="snakeoil.process package" href="snakeoil.process.html" />
+    <link rel="prev" title="snakeoil.osutils.mount module" href="snakeoil.osutils.mount.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.process.html" title="snakeoil.process package"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.osutils.mount.html" title="snakeoil.osutils.mount module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="snakeoil.osutils.html" accesskey="U">snakeoil.osutils package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.osutils.native_readdir module</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-snakeoil.osutils.native_readdir">
+<span id="snakeoil-osutils-native-readdir-module"></span><h1>snakeoil.osutils.native_readdir module<a class="headerlink" href="#module-snakeoil.osutils.native_readdir" title="Permalink to this heading">¶</a></h1>
+<p>Wrapper for readdir which grabs file type from d_type.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.osutils.native_readdir.listdir_dirs">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.osutils.native_readdir.</span></span><span class="sig-name descname"><span class="pre">listdir_dirs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">followSymlinks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/osutils/native_readdir.html#listdir_dirs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.osutils.native_readdir.listdir_dirs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of all subdirectories within a directory</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – directory to scan</p></li>
+<li><p><strong>followSymlinks</strong> – this controls if symlinks are resolved.
+If True and the symlink resolves to a directory, it is returned,
+else if False it isn’t returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of directories within <cite>path</cite></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.osutils.native_readdir.listdir_files">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.osutils.native_readdir.</span></span><span class="sig-name descname"><span class="pre">listdir_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">followSymlinks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/osutils/native_readdir.html#listdir_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.osutils.native_readdir.listdir_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of all files within a directory</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – directory to scan</p></li>
+<li><p><strong>followSymlinks</strong> – this controls if symlinks are resolved.
+If True and the symlink resolves to a file, it is returned,
+else if False it isn’t returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of files within <cite>path</cite></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.osutils.native_readdir.readdir">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.osutils.native_readdir.</span></span><span class="sig-name descname"><span class="pre">readdir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/osutils/native_readdir.html#readdir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.osutils.native_readdir.readdir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a directory, return a list of (filename, filetype)</p>
+<p>see <code class="xref py py-data docutils literal notranslate"><span class="pre">d_type_mappings</span></code> for the translation used</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> – path of a directory to scan</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of (filename, filetype)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.osutils.native_readdir.stat_swallow_enoent">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.osutils.native_readdir.</span></span><span class="sig-name descname"><span class="pre">stat_swallow_enoent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stat=&lt;built-in</span> <span class="pre">function</span> <span class="pre">stat&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/osutils/native_readdir.html#stat_swallow_enoent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.osutils.native_readdir.stat_swallow_enoent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="snakeoil.osutils.mount.html"
+                          title="previous chapter">snakeoil.osutils.mount module</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="snakeoil.process.html"
+                          title="next chapter">snakeoil.process package</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.process.html" title="snakeoil.process package"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.osutils.mount.html" title="snakeoil.osutils.mount module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="snakeoil.osutils.html" >snakeoil.osutils package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.osutils.native_readdir module</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

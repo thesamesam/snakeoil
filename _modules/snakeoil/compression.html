@@ -1,0 +1,345 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>snakeoil.compression &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.compression</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for snakeoil.compression</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">shlex</span>
+<span class="kn">from</span> <span class="nn">importlib</span> <span class="kn">import</span> <span class="n">import_module</span>
+
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">klass</span>
+<span class="kn">from</span> <span class="nn">..cli.exceptions</span> <span class="kn">import</span> <span class="n">UserException</span>
+<span class="kn">from</span> <span class="nn">..process</span> <span class="kn">import</span> <span class="n">CommandNotFound</span><span class="p">,</span> <span class="n">find_binary</span>
+<span class="kn">from</span> <span class="nn">..process.spawn</span> <span class="kn">import</span> <span class="n">spawn_get_output</span>
+
+
+<span class="k">class</span> <span class="nc">_transform_source</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+    <span class="nd">@klass</span><span class="o">.</span><span class="n">jit_attr</span>
+    <span class="k">def</span> <span class="nf">module</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">import_module</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;snakeoil.compression._</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="nd">@klass</span><span class="o">.</span><span class="n">jit_attr</span>
+    <span class="k">def</span> <span class="nf">parallelizable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="p">,</span> <span class="s1">&#39;parallelizable&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">compress_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">parallelize</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">parallelize</span> <span class="o">=</span> <span class="n">parallelize</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">parallelizable</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">compress_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">parallelize</span><span class="o">=</span><span class="n">parallelize</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">decompress_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">parallelize</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">parallelize</span> <span class="o">=</span> <span class="n">parallelize</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">parallelizable</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">decompress_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">parallelize</span><span class="o">=</span><span class="n">parallelize</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">compress_handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handle</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">parallelize</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">parallelize</span> <span class="o">=</span> <span class="n">parallelize</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">parallelizable</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">compress_handle</span><span class="p">(</span><span class="n">handle</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">parallelize</span><span class="o">=</span><span class="n">parallelize</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">decompress_handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handle</span><span class="p">,</span> <span class="n">parallelize</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">parallelize</span> <span class="o">=</span> <span class="n">parallelize</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">parallelizable</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">decompress_handle</span><span class="p">(</span><span class="n">handle</span><span class="p">,</span> <span class="n">parallelize</span><span class="o">=</span><span class="n">parallelize</span><span class="p">)</span>
+
+
+<span class="n">_transforms</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">_transform_source</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;bzip2&#39;</span><span class="p">,)}</span>
+
+
+<div class="viewcode-block" id="compress_data"><a class="viewcode-back" href="../../api/snakeoil.compression.html#snakeoil.compression.compress_data">[docs]</a><span class="k">def</span> <span class="nf">compress_data</span><span class="p">(</span><span class="n">compressor_type</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">_transforms</span><span class="p">[</span><span class="n">compressor_type</span><span class="p">]</span><span class="o">.</span><span class="n">compress_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="decompress_data"><a class="viewcode-back" href="../../api/snakeoil.compression.html#snakeoil.compression.decompress_data">[docs]</a><span class="k">def</span> <span class="nf">decompress_data</span><span class="p">(</span><span class="n">compressor_type</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">_transforms</span><span class="p">[</span><span class="n">compressor_type</span><span class="p">]</span><span class="o">.</span><span class="n">decompress_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="compress_handle"><a class="viewcode-back" href="../../api/snakeoil.compression.html#snakeoil.compression.compress_handle">[docs]</a><span class="k">def</span> <span class="nf">compress_handle</span><span class="p">(</span><span class="n">compressor_type</span><span class="p">,</span> <span class="n">handle</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">_transforms</span><span class="p">[</span><span class="n">compressor_type</span><span class="p">]</span><span class="o">.</span><span class="n">compress_handle</span><span class="p">(</span><span class="n">handle</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="decompress_handle"><a class="viewcode-back" href="../../api/snakeoil.compression.html#snakeoil.compression.decompress_handle">[docs]</a><span class="k">def</span> <span class="nf">decompress_handle</span><span class="p">(</span><span class="n">compressor_type</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">_transforms</span><span class="p">[</span><span class="n">compressor_type</span><span class="p">]</span><span class="o">.</span><span class="n">decompress_handle</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ArCompError"><a class="viewcode-back" href="../../api/snakeoil.compression.html#snakeoil.compression.ArCompError">[docs]</a><span class="k">class</span> <span class="nc">ArCompError</span><span class="p">(</span><span class="n">UserException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generic archive and compressed file error.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="n">code</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">code</span> <span class="o">=</span> <span class="n">code</span></div>
+
+
+<div class="viewcode-block" id="ArComp"><a class="viewcode-back" href="../../api/snakeoil.compression.html#snakeoil.compression.ArComp">[docs]</a><span class="k">class</span> <span class="nc">ArComp</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Generic archive and compressed file format support.&quot;&quot;&quot;</span>
+
+    <span class="n">binary</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">default_unpack_cmd</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">known_exts</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">ext</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">cls</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">known_exts</span><span class="p">[</span><span class="n">ext</span><span class="p">]</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">ArComp</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ArCompError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;unknown compression file extension: </span><span class="si">{</span><span class="n">ext</span><span class="si">!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init_subclass__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize result subclasses and register archive extensions.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init_subclass__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">((</span><span class="bp">cls</span><span class="o">.</span><span class="n">binary</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">default_unpack_cmd</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">exts</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;class missing required attrs: </span><span class="si">{</span><span class="bp">cls</span><span class="si">!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ext</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">exts</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">known_exts</span><span class="p">[</span><span class="n">ext</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">ext</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+
+    <span class="nd">@klass</span><span class="o">.</span><span class="n">jit_attr</span>
+    <span class="k">def</span> <span class="nf">_unpack_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">binary</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">binary</span> <span class="o">=</span> <span class="n">find_binary</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="k">except</span> <span class="n">CommandNotFound</span><span class="p">:</span>
+                <span class="k">continue</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">choices</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">binary</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ArCompError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;required binary not found from the following choices: </span><span class="si">{</span><span class="n">choices</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_unpack_cmd</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">binary</span><span class="o">=</span><span class="n">binary</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cmd</span>
+
+<div class="viewcode-block" id="ArComp.unpack"><a class="viewcode-back" href="../../api/snakeoil.compression.html#snakeoil.compression.ArComp.unpack">[docs]</a>    <span class="k">def</span> <span class="nf">unpack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="ArComp.create"><a class="viewcode-back" href="../../api/snakeoil.compression.html#snakeoil.compression.ArComp.create">[docs]</a>    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dest</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">_Archive</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Generic archive format support.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">unpack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unpack_cmd</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">))</span>
+        <span class="n">ret</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">spawn_get_output</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">collect_fds</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ret</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="k">if</span> <span class="n">output</span> <span class="k">else</span> <span class="sa">f</span><span class="s1">&#39;unpacking failed: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">!r}</span><span class="s1">&#39;</span>
+            <span class="k">raise</span> <span class="n">ArCompError</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">ret</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_CompressedFile</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Single compressed file.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">unpack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unpack_cmd</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">))</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">dest</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">ret</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">spawn_get_output</span><span class="p">(</span>
+                <span class="n">cmd</span><span class="p">,</span> <span class="n">collect_fds</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,),</span> <span class="n">fd_pipes</span><span class="o">=</span><span class="p">{</span><span class="mi">1</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">()},</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ret</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="k">if</span> <span class="n">output</span> <span class="k">else</span> <span class="sa">f</span><span class="s1">&#39;unpacking failed: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">!r}</span><span class="s1">&#39;</span>
+            <span class="k">raise</span> <span class="n">ArCompError</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">ret</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_CompressedStdin</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Compressed data from stdin.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">unpack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unpack_cmd</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">,</span> <span class="nb">open</span><span class="p">(</span><span class="n">dest</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">ret</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">spawn_get_output</span><span class="p">(</span>
+                <span class="n">cmd</span><span class="p">,</span> <span class="n">collect_fds</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,),</span> <span class="n">fd_pipes</span><span class="o">=</span><span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="n">src</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="mi">1</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">()},</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ret</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="k">if</span> <span class="n">output</span> <span class="k">else</span> <span class="sa">f</span><span class="s1">&#39;unpacking failed: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">!r}</span><span class="s1">&#39;</span>
+            <span class="k">raise</span> <span class="n">ArCompError</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">ret</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_Tar</span><span class="p">(</span><span class="n">_Archive</span><span class="p">,</span> <span class="n">ArComp</span><span class="p">):</span>
+
+    <span class="n">exts</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;.tar&#39;</span><span class="p">])</span>
+    <span class="n">binary</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;tar&#39;</span><span class="p">,)</span>
+    <span class="n">compress_binary</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">default_unpack_cmd</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{binary}</span><span class="s1"> xf &quot;</span><span class="si">{path}</span><span class="s1">&quot;&#39;</span>
+
+    <span class="nd">@klass</span><span class="o">.</span><span class="n">jit_attr</span>
+    <span class="k">def</span> <span class="nf">_unpack_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_unpack_cmd</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compress_binary</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">compress_binary</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">find_binary</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+                    <span class="n">cmd</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39; --use-compress-program=</span><span class="si">{</span><span class="n">b</span><span class="si">}</span><span class="s1">&#39;</span>
+                    <span class="k">break</span>
+                <span class="k">except</span> <span class="n">CommandNotFound</span><span class="p">:</span>
+                    <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">choices</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compress_binary</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">ArCompError</span><span class="p">(</span>
+                    <span class="s1">&#39;no compression binary found from the &#39;</span>
+                    <span class="sa">f</span><span class="s1">&#39;following choices: </span><span class="si">{</span><span class="n">choices</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cmd</span>
+
+
+<span class="k">class</span> <span class="nc">_TarGZ</span><span class="p">(</span><span class="n">_Tar</span><span class="p">):</span>
+
+    <span class="n">exts</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;.tar.gz&#39;</span><span class="p">,</span> <span class="s1">&#39;.tgz&#39;</span><span class="p">,</span> <span class="s1">&#39;.tar.Z&#39;</span><span class="p">,</span> <span class="s1">&#39;.tar.z&#39;</span><span class="p">])</span>
+    <span class="n">compress_binary</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;pigz&#39;</span><span class="p">,</span> <span class="s1">&#39;gzip&#39;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_TarBZ2</span><span class="p">(</span><span class="n">_Tar</span><span class="p">):</span>
+
+    <span class="n">exts</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;.tar.bz2&#39;</span><span class="p">,</span> <span class="s1">&#39;.tbz2&#39;</span><span class="p">,</span> <span class="s1">&#39;.tbz&#39;</span><span class="p">])</span>
+    <span class="n">compress_binary</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;lbzip2&#39;</span><span class="p">,</span> <span class="s1">&#39;pbzip2&#39;</span><span class="p">,</span> <span class="s1">&#39;bzip2&#39;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_TarLZMA</span><span class="p">(</span><span class="n">_Tar</span><span class="p">):</span>
+
+    <span class="n">exts</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;.tar.lzma&#39;</span><span class="p">])</span>
+    <span class="n">compress_binary</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;lzma&#39;</span><span class="p">,)</span>
+
+
+<span class="k">class</span> <span class="nc">_TarXZ</span><span class="p">(</span><span class="n">_Tar</span><span class="p">):</span>
+
+    <span class="n">exts</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;.tar.xz&#39;</span><span class="p">,</span> <span class="s1">&#39;.txz&#39;</span><span class="p">])</span>
+    <span class="n">compress_binary</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;pixz&#39;</span><span class="p">,</span> <span class="s1">&#39;xz&#39;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_Zip</span><span class="p">(</span><span class="n">_Archive</span><span class="p">,</span> <span class="n">ArComp</span><span class="p">):</span>
+
+    <span class="n">exts</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;.ZIP&#39;</span><span class="p">,</span> <span class="s1">&#39;.zip&#39;</span><span class="p">,</span> <span class="s1">&#39;.jar&#39;</span><span class="p">])</span>
+    <span class="n">binary</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;unzip&#39;</span><span class="p">,)</span>
+    <span class="n">default_unpack_cmd</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{binary}</span><span class="s1"> -qo &quot;</span><span class="si">{path}</span><span class="s1">&quot;&#39;</span>
+
+
+<span class="k">class</span> <span class="nc">_GZ</span><span class="p">(</span><span class="n">_CompressedStdin</span><span class="p">,</span> <span class="n">ArComp</span><span class="p">):</span>
+
+    <span class="n">exts</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;.gz&#39;</span><span class="p">,</span> <span class="s1">&#39;.Z&#39;</span><span class="p">,</span> <span class="s1">&#39;.z&#39;</span><span class="p">])</span>
+    <span class="n">binary</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;pigz&#39;</span><span class="p">,</span> <span class="s1">&#39;gzip&#39;</span><span class="p">)</span>
+    <span class="n">default_unpack_cmd</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{binary}</span><span class="s1"> -d -c&#39;</span>
+
+
+<span class="k">class</span> <span class="nc">_BZ2</span><span class="p">(</span><span class="n">_CompressedStdin</span><span class="p">,</span> <span class="n">ArComp</span><span class="p">):</span>
+
+    <span class="n">exts</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;.bz2&#39;</span><span class="p">,</span> <span class="s1">&#39;.bz&#39;</span><span class="p">])</span>
+    <span class="n">binary</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;lbzip2&#39;</span><span class="p">,</span> <span class="s1">&#39;pbzip2&#39;</span><span class="p">,</span> <span class="s1">&#39;bzip2&#39;</span><span class="p">)</span>
+    <span class="n">default_unpack_cmd</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{binary}</span><span class="s1"> -d -c&#39;</span>
+
+
+<span class="k">class</span> <span class="nc">_XZ</span><span class="p">(</span><span class="n">_CompressedStdin</span><span class="p">,</span> <span class="n">ArComp</span><span class="p">):</span>
+
+    <span class="n">exts</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;.xz&#39;</span><span class="p">])</span>
+    <span class="n">binary</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;pixz&#39;</span><span class="p">,</span> <span class="s1">&#39;xz&#39;</span><span class="p">)</span>
+    <span class="n">default_unpack_cmd</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{binary}</span><span class="s1"> -d -c&#39;</span>
+
+
+<span class="k">class</span> <span class="nc">_7Z</span><span class="p">(</span><span class="n">_Archive</span><span class="p">,</span> <span class="n">ArComp</span><span class="p">):</span>
+
+    <span class="n">exts</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;.7Z&#39;</span><span class="p">,</span> <span class="s1">&#39;.7z&#39;</span><span class="p">])</span>
+    <span class="n">binary</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;7z&#39;</span><span class="p">,)</span>
+    <span class="n">default_unpack_cmd</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{binary}</span><span class="s1"> x -y &quot;</span><span class="si">{path}</span><span class="s1">&quot;&#39;</span>
+
+
+<span class="k">class</span> <span class="nc">_Rar</span><span class="p">(</span><span class="n">_Archive</span><span class="p">,</span> <span class="n">ArComp</span><span class="p">):</span>
+
+    <span class="n">exts</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;.RAR&#39;</span><span class="p">,</span> <span class="s1">&#39;.rar&#39;</span><span class="p">])</span>
+    <span class="n">binary</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;unrar&#39;</span><span class="p">,)</span>
+    <span class="n">default_unpack_cmd</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{binary}</span><span class="s1"> x -idq -o+ &quot;</span><span class="si">{path}</span><span class="s1">&quot;&#39;</span>
+
+
+<span class="k">class</span> <span class="nc">_LHA</span><span class="p">(</span><span class="n">_Archive</span><span class="p">,</span> <span class="n">ArComp</span><span class="p">):</span>
+
+    <span class="n">exts</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;.LHa&#39;</span><span class="p">,</span> <span class="s1">&#39;.LHA&#39;</span><span class="p">,</span> <span class="s1">&#39;.lha&#39;</span><span class="p">,</span> <span class="s1">&#39;.lzh&#39;</span><span class="p">])</span>
+    <span class="n">binary</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;lha&#39;</span><span class="p">,)</span>
+    <span class="n">default_unpack_cmd</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{binary}</span><span class="s1"> xfq &quot;</span><span class="si">{path}</span><span class="s1">&quot;&#39;</span>
+
+
+<span class="k">class</span> <span class="nc">_Ar</span><span class="p">(</span><span class="n">_Archive</span><span class="p">,</span> <span class="n">ArComp</span><span class="p">):</span>
+
+    <span class="n">exts</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;.a&#39;</span><span class="p">,</span> <span class="s1">&#39;.deb&#39;</span><span class="p">])</span>
+    <span class="n">binary</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;ar&#39;</span><span class="p">,)</span>
+    <span class="n">default_unpack_cmd</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{binary}</span><span class="s1"> x &quot;</span><span class="si">{path}</span><span class="s1">&quot;&#39;</span>
+
+
+<span class="k">class</span> <span class="nc">_LZMA</span><span class="p">(</span><span class="n">_CompressedFile</span><span class="p">,</span> <span class="n">ArComp</span><span class="p">):</span>
+
+    <span class="n">exts</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;.lzma&#39;</span><span class="p">])</span>
+    <span class="n">binary</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;lzma&#39;</span><span class="p">,)</span>
+    <span class="n">default_unpack_cmd</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{binary}</span><span class="s1"> -dc &quot;</span><span class="si">{path}</span><span class="s1">&quot;&#39;</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.compression</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

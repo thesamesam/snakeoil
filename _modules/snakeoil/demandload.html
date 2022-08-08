@@ -1,0 +1,396 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>snakeoil.demandload &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.demandload</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for snakeoil.demandload</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Demand load things when used.</span>
+
+<span class="sd">This uses :py:func:`Placeholder` objects which create an actual object on</span>
+<span class="sd">first use and know how to replace themselves with that object, so</span>
+<span class="sd">there is no performance penalty after first use.</span>
+
+<span class="sd">This trick is *mostly* transparent, but there are a few things you</span>
+<span class="sd">have to be careful with:</span>
+
+<span class="sd"> - You may not bind a second name to a placeholder object. Specifically,</span>
+<span class="sd">   if you demandload C{bar} in module C{foo}, you may not</span>
+<span class="sd">   C{from foo import bar} in a third module. The placeholder object</span>
+<span class="sd">   does not &quot;know&quot; it gets imported, so this does not trigger the</span>
+<span class="sd">   demandload: C{bar} in the third module is the placeholder object.</span>
+<span class="sd">   When that placeholder gets used it replaces itself with the actual</span>
+<span class="sd">   module in C{foo} but not in the third module.</span>
+<span class="sd">   Because this is normally unwanted (it introduces a small</span>
+<span class="sd">   performance hit) the placeholder object will raise an exception if</span>
+<span class="sd">   it detects this. But if the demandload gets triggered before the</span>
+<span class="sd">   third module is imported you do not get that exception, so you</span>
+<span class="sd">   have to be careful not to import or otherwise pass around the</span>
+<span class="sd">   placeholder object without triggering it.</span>
+<span class="sd"> - You may not demandload more than one level of lookups.  Specifically,</span>
+<span class="sd">   demandload(&quot;os.path&quot;) is not allowed- this would require a &quot;os&quot; fake</span>
+<span class="sd">   object in the local scope, one which would have a &quot;path&quot; fake object</span>
+<span class="sd">   pushed into the os object.  This is effectively not much of a limitation;</span>
+<span class="sd">   you can instead just lazyload &#39;path&#39; directly via demandload(&quot;os:path&quot;).</span>
+<span class="sd"> - Not all operations on the placeholder object trigger demandload.</span>
+<span class="sd">   The most common problem is that C{except ExceptionClass} does not</span>
+<span class="sd">   work if C{ExceptionClass} is a placeholder.</span>
+<span class="sd">   C{except module.ExceptionClass} with C{module} a placeholder does</span>
+<span class="sd">   work. You can normally avoid this by always demandloading the module, not</span>
+<span class="sd">   something in it. Another similar case is that C{isinstance Class} or</span>
+<span class="sd">   C{issubclass Class} does not work for the initial call since the proper</span>
+<span class="sd">   class hasn&#39;t replaced the placeholder until after the call. So the first</span>
+<span class="sd">   call will always return False with subsequent calls working as expected. The</span>
+<span class="sd">   previously mentioned workaround of demandloading the module works in this</span>
+<span class="sd">   case as well.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;demandload&quot;</span><span class="p">,</span> <span class="s2">&quot;demand_compile_regexp&quot;</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+
+<span class="kn">from</span> <span class="nn">.modules</span> <span class="kn">import</span> <span class="n">load_any</span>
+
+<span class="c1"># There are some demandloaded imports below the definition of demandload.</span>
+
+<span class="n">_allowed_chars</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">isalnum</span><span class="p">()</span> <span class="ow">or</span> <span class="n">x</span> <span class="ow">in</span> <span class="s2">&quot;_.&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">&quot; &quot;</span> <span class="ow">or</span> <span class="s2">&quot;a&quot;</span>
+                         <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">map</span><span class="p">(</span><span class="nb">chr</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="mi">256</span><span class="p">)))</span>
+
+
+<span class="k">def</span> <span class="nf">parse_imports</span><span class="p">(</span><span class="n">imports</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parse a sequence of strings describing imports.</span>
+
+<span class="sd">    For every input string it returns a tuple of (import, targetname).</span>
+<span class="sd">    Examples::</span>
+
+<span class="sd">      &#39;foo&#39; -&gt; (&#39;foo&#39;, &#39;foo&#39;)</span>
+<span class="sd">      &#39;foo:bar&#39; -&gt; (&#39;foo.bar&#39;, &#39;bar&#39;)</span>
+<span class="sd">      &#39;foo:bar,baz@spork&#39; -&gt; (&#39;foo.bar&#39;, &#39;bar&#39;), (&#39;foo.baz&#39;, &#39;spork&#39;)</span>
+<span class="sd">      &#39;foo@bar&#39; -&gt; (&#39;foo&#39;, &#39;bar&#39;)</span>
+
+<span class="sd">    Notice &#39;foo.bar&#39; is not a valid input.  Supporting &#39;foo.bar&#39; would</span>
+<span class="sd">    result in nested demandloaded objects- this isn&#39;t desirable for</span>
+<span class="sd">    client code.  Instead use &#39;foo:bar&#39;.</span>
+
+<span class="sd">    :type imports: sequence of C{str} objects.</span>
+<span class="sd">    :rtype: iterable of tuples of two C{str} objects.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">imports</span><span class="p">:</span>
+        <span class="n">fromlist</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fromlist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># Not a &quot;from&quot; import.</span>
+            <span class="k">if</span> <span class="s1">&#39;.&#39;</span> <span class="ow">in</span> <span class="n">s</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;dotted imports are disallowed; see &quot;</span>
+                    <span class="s2">&quot;snakeoil.demandload docstring for &quot;</span>
+                    <span class="s2">&quot;details; </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">s</span><span class="p">)</span>
+            <span class="n">split</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">split</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">s</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">_allowed_chars</span><span class="p">)</span><span class="o">.</span><span class="n">isspace</span><span class="p">():</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;bad target: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">s</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">split</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">split</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">split</span> <span class="o">=</span> <span class="n">split</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">yield</span> <span class="n">split</span><span class="p">,</span> <span class="n">split</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># &quot;from&quot; import.</span>
+            <span class="n">base</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="n">fromlist</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">base</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">_allowed_chars</span><span class="p">)</span><span class="o">.</span><span class="n">isspace</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;bad target: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">base</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">targets</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">):</span>
+                <span class="n">split</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">split</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">s</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">_allowed_chars</span><span class="p">)</span><span class="o">.</span><span class="n">isspace</span><span class="p">():</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;bad target: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">s</span><span class="p">)</span>
+                <span class="k">yield</span> <span class="n">base</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="n">split</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">split</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+<span class="k">def</span> <span class="nf">_protection_enabled_disabled</span><span class="p">():</span>
+    <span class="k">return</span> <span class="kc">False</span>
+
+<span class="k">def</span> <span class="nf">_noisy_protection_disabled</span><span class="p">():</span>
+    <span class="k">return</span> <span class="kc">False</span>
+
+<span class="k">def</span> <span class="nf">_protection_enabled_enabled</span><span class="p">():</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;SNAKEOIL_DEMANDLOAD_PROTECTION&quot;</span><span class="p">,</span> <span class="s2">&quot;n&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">val</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;yes&quot;</span><span class="p">,</span> <span class="s2">&quot;true&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">_noisy_protection_enabled</span><span class="p">():</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;SNAKEOIL_DEMANDLOAD_WARN&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">val</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;yes&quot;</span><span class="p">,</span> <span class="s2">&quot;true&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="s1">&#39;pydoc&#39;</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span> <span class="ow">or</span> <span class="s1">&#39;epydoc&#39;</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">:</span>
+    <span class="n">_protection_enabled</span> <span class="o">=</span> <span class="n">_protection_enabled_disabled</span>
+    <span class="n">_noisy_protection</span> <span class="o">=</span> <span class="n">_noisy_protection_disabled</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">_protection_enabled</span> <span class="o">=</span> <span class="n">_protection_enabled_enabled</span>
+    <span class="n">_noisy_protection</span> <span class="o">=</span> <span class="n">_noisy_protection_enabled</span>
+
+
+<span class="k">class</span> <span class="nc">Placeholder</span><span class="p">:</span>
+
+    <span class="sd">&quot;&quot;&quot;Object that knows how to replace itself when first accessed.</span>
+
+<span class="sd">    See the module docstring for common problems with its use.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load_namespace</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Object that imports modules into scope when first used.</span>
+
+<span class="sd">        See the module docstring for common problems with its use; used by</span>
+<span class="sd">        :py:func:`demandload`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Asked to load non string namespace: </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">target</span><span class="p">,))</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">load_any</span><span class="p">,</span> <span class="n">target</span><span class="p">))</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load_regex</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compiled Regex object that knows how to replace itself when first accessed.</span>
+
+<span class="sd">        See the module docstring for common problems with its use; used by</span>
+<span class="sd">        :py:func:`demand_compile_regexp`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;re.compile requires at least one arg or kwargs&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">load_func</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize.</span>
+
+<span class="sd">        :param scope: the scope we live in, normally the global namespace of</span>
+<span class="sd">            the caller (C{globals()}).</span>
+<span class="sd">        :param name: the name we have in C{scope}.</span>
+<span class="sd">        :param load_func: a functor that when invoked with no args, returns the</span>
+<span class="sd">            object we&#39;re demandloading.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">load_func</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;load_func must be callable; got </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">load_func</span><span class="p">,))</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_scope&#39;</span><span class="p">,</span> <span class="n">scope</span><span class="p">)</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_name&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_replacing_tids&#39;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_load_func&#39;</span><span class="p">,</span> <span class="n">load_func</span><span class="p">)</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_loading_lock&#39;</span><span class="p">,</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">_target_already_loaded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">complain</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_name&#39;</span><span class="p">)</span>
+        <span class="n">scope</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_scope&#39;</span><span class="p">)</span>
+
+        <span class="c1"># in a threaded environment, it&#39;s possible for tid1 to get the</span>
+        <span class="c1"># placeholder from globals, python switches to tid2, which triggers</span>
+        <span class="c1"># a full update (thus enabling this pathway), switch back to tid1,</span>
+        <span class="c1"># which then throws the complaint.</span>
+        <span class="c1"># this cannot be locked to address; the pull from global scope is</span>
+        <span class="c1"># what would need locking, and that&#39;s infeasible (VM shouldn&#39;t do it</span>
+        <span class="c1"># anyways; would kill performance)</span>
+        <span class="c1"># if threading is enabled, we&#39;ll have the tid&#39;s of the threads that</span>
+        <span class="c1"># triggered replacement; if the thread triggering this pathway isn&#39;t</span>
+        <span class="c1"># one of the ones that caused replacement, silence the warning.</span>
+        <span class="c1"># as for why we watch for the threading modules; if they&#39;re not there,</span>
+        <span class="c1"># it&#39;s impossible for this pathway to accidentally be triggered twice-</span>
+        <span class="c1"># meaning it is a misuse by the consuming client code.</span>
+        <span class="k">if</span> <span class="n">complain</span><span class="p">:</span>
+            <span class="n">tids_to_complain_about</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_replacing_tids&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">threading</span><span class="o">.</span><span class="n">current_thread</span><span class="p">()</span><span class="o">.</span><span class="n">ident</span> <span class="ow">in</span> <span class="n">tids_to_complain_about</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">_protection_enabled</span><span class="p">():</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Placeholder for </span><span class="si">%r</span><span class="s1"> was triggered twice&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,))</span>
+                <span class="k">elif</span> <span class="n">_noisy_protection</span><span class="p">():</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Placeholder for </span><span class="si">%r</span><span class="s1"> was triggered multiple times &#39;</span>
+                                    <span class="s1">&#39;in file </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">scope</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;__file__&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">scope</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_get_target</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Replace ourself in C{scope} with the result of our C{_load_func}.</span>
+
+<span class="sd">        :return: the result of calling C{_load_func}.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">preloaded_func</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_target_already_loaded&#39;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_loading_lock&#39;</span><span class="p">):</span>
+            <span class="n">load_func</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_load_func&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">load_func</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># This means that there was contention; two threads made it into</span>
+                <span class="c1"># _get_target.  That&#39;s fine; suppress complaints, and return the</span>
+                <span class="c1"># preloaded value.</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">preloaded_func</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># We&#39;re the first thread to try and do the load; load the target,</span>
+                <span class="c1"># fix the scope, and replace this method with one that shortcircuits</span>
+                <span class="c1"># (and appropriately complains) the lookup.</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">load_func</span><span class="p">()</span>
+                <span class="n">scope</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_scope&#39;</span><span class="p">)</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_name&#39;</span><span class="p">)</span>
+                <span class="n">scope</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
+                <span class="c1"># Replace this method with the fast path/preloaded one; this</span>
+                <span class="c1"># is to ensure complaints get leveled if needed.</span>
+                <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_get_target&#39;</span><span class="p">,</span> <span class="n">preloaded_func</span><span class="p">)</span>
+                <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_load_func&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+
+            <span class="c1"># note this step *has* to follow scope modification; else it</span>
+            <span class="c1"># will go maximum depth recursion.</span>
+            <span class="n">tids</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_replacing_tids&#39;</span><span class="p">)</span>
+            <span class="n">tids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">current_thread</span><span class="p">()</span><span class="o">.</span><span class="n">ident</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">_load_func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="c1"># Various methods proxied to our replacement.</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="s1">&#39;__str__&#39;</span><span class="p">)()</span>
+
+    <span class="k">def</span> <span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_get_target&#39;</span><span class="p">)()</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_get_target&#39;</span><span class="p">)()</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_get_target&#39;</span><span class="p">)()</span>
+        <span class="k">return</span> <span class="n">result</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="demandload"><a class="viewcode-back" href="../../api/snakeoil.demandload.html#snakeoil.demandload.demandload">[docs]</a><span class="k">def</span> <span class="nf">demandload</span><span class="p">(</span><span class="o">*</span><span class="n">imports</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Import modules into the caller&#39;s global namespace when each is first used.</span>
+
+<span class="sd">    Other args are strings listing module names.</span>
+<span class="sd">    names are handled like this::</span>
+
+<span class="sd">    foo            import foo</span>
+<span class="sd">    foo@bar        import foo as bar</span>
+<span class="sd">    foo:bar        from foo import bar</span>
+<span class="sd">    foo:bar,quux   from foo import bar, quux</span>
+<span class="sd">    foo.bar:quux   from foo.bar import quux</span>
+<span class="sd">    foo:baz@quux   from foo import baz as quux</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># pull the caller&#39;s global namespace if undefined</span>
+    <span class="n">scope</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;scope&#39;</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">_getframe</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">f_globals</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">source</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">parse_imports</span><span class="p">(</span><span class="n">imports</span><span class="p">):</span>
+        <span class="n">scope</span><span class="p">[</span><span class="n">target</span><span class="p">]</span> <span class="o">=</span> <span class="n">Placeholder</span><span class="o">.</span><span class="n">load_namespace</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">source</span><span class="p">)</span></div>
+
+
+<span class="c1"># Extra name to make undoing monkeypatching demandload with</span>
+<span class="c1"># disabled_demandload easier.</span>
+<span class="n">enabled_demandload</span> <span class="o">=</span> <span class="n">demandload</span>
+
+
+<span class="k">def</span> <span class="nf">disabled_demandload</span><span class="p">(</span><span class="o">*</span><span class="n">imports</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Exactly like :py:func:`demandload` but does all imports immediately.&quot;&quot;&quot;</span>
+    <span class="n">scope</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;scope&#39;</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">_getframe</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">f_globals</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">source</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">parse_imports</span><span class="p">(</span><span class="n">imports</span><span class="p">):</span>
+        <span class="n">scope</span><span class="p">[</span><span class="n">target</span><span class="p">]</span> <span class="o">=</span> <span class="n">load_any</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="demand_compile_regexp"><a class="viewcode-back" href="../../api/snakeoil.demandload.html#snakeoil.demandload.demand_compile_regexp">[docs]</a><span class="k">def</span> <span class="nf">demand_compile_regexp</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Demandloaded version of :py:func:`re.compile`.</span>
+
+<span class="sd">    Extra arguments are passed unchanged to :py:func:`re.compile`.</span>
+
+<span class="sd">    :param name: the name of the compiled re object in that scope.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">scope</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;scope&#39;</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">_getframe</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">f_globals</span><span class="p">)</span>
+    <span class="n">scope</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">Placeholder</span><span class="o">.</span><span class="n">load_regex</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">disabled_demand_compile_regexp</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Exactly like :py:func:`demand_compile_regexp` but does all imports immediately.&quot;&quot;&quot;</span>
+    <span class="n">scope</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;scope&#39;</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">_getframe</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">f_globals</span><span class="p">)</span>
+    <span class="n">scope</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;SNAKEOIL_DEMANDLOAD_DISABLED&quot;</span><span class="p">,</span> <span class="s1">&#39;n&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;yes&#39;</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="s1">&#39;true&#39;</span><span class="p">):</span>
+    <span class="n">demandload</span> <span class="o">=</span> <span class="n">disabled_demandload</span>
+    <span class="n">demand_compile_regexp</span> <span class="o">=</span> <span class="n">disabled_demand_compile_regexp</span>
+
+<span class="n">demandload</span><span class="p">(</span>
+    <span class="s1">&#39;logging&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;re&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.demandload</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,7 @@
+snakeoil.mappings module
+========================
+
+.. automodule:: snakeoil.mappings
+   :members:
+   :undoc-members:
+   :show-inheritance:

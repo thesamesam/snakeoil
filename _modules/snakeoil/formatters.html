@@ -1,0 +1,651 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>snakeoil.formatters &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.formatters</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for snakeoil.formatters</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Classes wrapping a file-like object to do fancy output on it.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">errno</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">locale</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+
+<span class="kn">from</span> <span class="nn">.klass</span> <span class="kn">import</span> <span class="n">GetAttrProxy</span><span class="p">,</span> <span class="n">steal_docs</span>
+<span class="kn">from</span> <span class="nn">.mappings</span> <span class="kn">import</span> <span class="n">defaultdictkey</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;Formatter&quot;</span><span class="p">,</span> <span class="s2">&quot;PlainTextFormatter&quot;</span><span class="p">,</span> <span class="s2">&quot;get_formatter&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;decorate_forced_wrapping&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">StreamClosed</span><span class="p">(</span><span class="ne">KeyboardInterrupt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Raised by :py:func:`Formatter.write` if the stream it prints to was closed.</span>
+
+<span class="sd">    This inherits from :py:class:`KeyboardInterrupt` because it should usually</span>
+<span class="sd">    be handled the same way: a common way of triggering this exception</span>
+<span class="sd">    is by closing a pager before the script finished outputting, which</span>
+<span class="sd">    should be handled like control+c, not like an error.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+
+<span class="c1"># &quot;Invalid name&quot; (for fg and bg methods, too short)</span>
+<span class="c1"># pylint: disable=C0103</span>
+
+
+<div class="viewcode-block" id="Formatter"><a class="viewcode-back" href="../../api/snakeoil.formatters.html#snakeoil.formatters.Formatter">[docs]</a><span class="k">class</span> <span class="nc">Formatter</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Abstract formatter base class.</span>
+
+<span class="sd">    The types of most of the instance attributes is undefined (depends</span>
+<span class="sd">    on the implementation of the particular Formatter subclass).</span>
+
+<span class="sd">    :ivar bold: object to pass to :py:func:`write` to switch to bold mode.</span>
+<span class="sd">    :ivar underline: object to pass to :py:func:`write` to switch to underlined mode.</span>
+<span class="sd">    :ivar reset: object to pass to :py:func:`write` to turn off bold and underline.</span>
+<span class="sd">    :ivar wrap: boolean indicating we auto-linewrap (defaults to off).</span>
+<span class="sd">    :ivar autoline: boolean indicating we are in auto-newline mode</span>
+<span class="sd">        (defaults to on).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">autoline</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrap</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="Formatter.write"><a class="viewcode-back" href="../../api/snakeoil.formatters.html#snakeoil.formatters.Formatter.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Write something to the stream.</span>
+
+<span class="sd">        Acceptable arguments are:</span>
+
+<span class="sd">        * Strings are simply written to the stream.</span>
+<span class="sd">        * None is ignored.</span>
+<span class="sd">        * Functions are called with the formatter as argument.</span>
+<span class="sd">          Their return value is then used the same way as the other</span>
+<span class="sd">          arguments.</span>
+<span class="sd">        * Formatter subclasses might special-case certain objects.</span>
+
+<span class="sd">        Accepts wrap and autoline as keyword arguments. Effect is</span>
+<span class="sd">        the same as setting them before the write call and resetting</span>
+<span class="sd">        them afterwards.</span>
+
+<span class="sd">        Accepts first_prefixes and later_prefixes as keyword</span>
+<span class="sd">        arguments. They should be sequences that are temporarily</span>
+<span class="sd">        appended to the first_prefix and later_prefix attributes.</span>
+
+<span class="sd">        Accepts prefixes as a keyword argument. Effect is the same as</span>
+<span class="sd">        setting first_prefixes and later_prefixes to the same value.</span>
+
+<span class="sd">        Accepts first_prefix, later_prefix and prefix as keyword</span>
+<span class="sd">        argument. Effect is the same as setting first_prefixes,</span>
+<span class="sd">        later_prefixes or prefixes to a one-element tuple.</span>
+
+<span class="sd">        The formatter has a couple of attributes that are useful as argument</span>
+<span class="sd">        to write.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="Formatter.fg"><a class="viewcode-back" href="../../api/snakeoil.formatters.html#snakeoil.formatters.Formatter.fg">[docs]</a>    <span class="k">def</span> <span class="nf">fg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Change foreground color.</span>
+
+<span class="sd">        :param color: color to change to. A default is used if omitted.</span>
+<span class="sd">            if passed None, resets to the default color.</span>
+<span class="sd">        :return: object representing changing the foreground to the requested</span>
+<span class="sd">            color, if possible for this formatter.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="Formatter.bg"><a class="viewcode-back" href="../../api/snakeoil.formatters.html#snakeoil.formatters.Formatter.bg">[docs]</a>    <span class="k">def</span> <span class="nf">bg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Change background color.</span>
+
+<span class="sd">        :param color: color to change to. A default is used if omitted.</span>
+<span class="sd">            if passed None, resets to the default color.</span>
+<span class="sd">        :return: object representing changing the background to the requested</span>
+<span class="sd">            color, if possible for this formatter.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="Formatter.error"><a class="viewcode-back" href="../../api/snakeoil.formatters.html#snakeoil.formatters.Formatter.error">[docs]</a>    <span class="k">def</span> <span class="nf">error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Format a string as an error message.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">prefixes</span><span class="o">=</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fg</span><span class="p">(</span><span class="s1">&#39;red&#39;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bold</span><span class="p">,</span> <span class="s1">&#39;!!! &#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Formatter.warn"><a class="viewcode-back" href="../../api/snakeoil.formatters.html#snakeoil.formatters.Formatter.warn">[docs]</a>    <span class="k">def</span> <span class="nf">warn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Format a string as a warning message.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">prefixes</span><span class="o">=</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fg</span><span class="p">(</span><span class="s1">&#39;yellow&#39;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bold</span><span class="p">,</span> <span class="s1">&#39;*** &#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Formatter.title"><a class="viewcode-back" href="../../api/snakeoil.formatters.html#snakeoil.formatters.Formatter.title">[docs]</a>    <span class="k">def</span> <span class="nf">title</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">string</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the title to string&quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="Formatter.flush"><a class="viewcode-back" href="../../api/snakeoil.formatters.html#snakeoil.formatters.Formatter.flush">[docs]</a>    <span class="k">def</span> <span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Flush the underlying stream buffer.&quot;&quot;&quot;</span></div></div>
+
+
+<div class="viewcode-block" id="PlainTextFormatter"><a class="viewcode-back" href="../../api/snakeoil.formatters.html#snakeoil.formatters.PlainTextFormatter">[docs]</a><span class="k">class</span> <span class="nc">PlainTextFormatter</span><span class="p">(</span><span class="n">Formatter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Formatter writing plain text to a file-like object.</span>
+
+<span class="sd">    :ivar width: contains the current maximum line length.</span>
+<span class="sd">    :ivar encoding: the encoding unicode strings should be converted to.</span>
+<span class="sd">    :ivar first_prefix: prefixes to output at the beginning of every write.</span>
+<span class="sd">    :ivar later_prefix: prefixes to output on each line after the first of</span>
+<span class="sd">        every write.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">bold</span> <span class="o">=</span> <span class="n">underline</span> <span class="o">=</span> <span class="n">reset</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">79</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize.</span>
+
+<span class="sd">        :type stream: file-like object.</span>
+<span class="sd">        :param stream: stream to output to.</span>
+<span class="sd">        :param width: maximum line width (defaults to 79).</span>
+<span class="sd">        :param encoding: encoding unicode strings are converted to.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="c1"># We used to require a TextIOWrapper on py3. We still accept</span>
+        <span class="c1"># one, guess the encoding from it and grab its underlying</span>
+        <span class="c1"># bytestream.</span>
+        <span class="c1"># It would probably be saner to shift the encoding-guessing up</span>
+        <span class="c1"># a layer, but keep it here for backwards compat for now.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">io</span><span class="o">.</span><span class="n">TextIOWrapper</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stream</span> <span class="o">=</span> <span class="n">stream</span><span class="o">.</span><span class="n">buffer</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stream</span> <span class="o">=</span> <span class="n">stream</span>
+        <span class="k">if</span> <span class="n">encoding</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">encoding</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stream</span><span class="p">,</span> <span class="s1">&#39;encoding&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">encoding</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">encoding</span> <span class="o">=</span> <span class="n">locale</span><span class="o">.</span><span class="n">getpreferredencoding</span><span class="p">()</span>
+            <span class="k">except</span> <span class="n">locale</span><span class="o">.</span><span class="n">Error</span><span class="p">:</span>
+                <span class="n">encoding</span> <span class="o">=</span> <span class="s1">&#39;ascii&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">encoding</span> <span class="o">=</span> <span class="n">encoding</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="n">width</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pos</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_in_first_line</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrote_something</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">first_prefix</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">later_prefix</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">_encoding_conversion_needed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_force_encoding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">val</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">encoding</span><span class="p">,</span> <span class="s1">&#39;replace&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_write_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wrap</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_in_first_line</span><span class="p">:</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_prefix</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">later_prefix</span>
+        <span class="c1"># This is a bit braindead since it duplicates a lot of code</span>
+        <span class="c1"># from write. Avoids fun things like word wrapped prefix though.</span>
+
+        <span class="k">for</span> <span class="n">thing</span> <span class="ow">in</span> <span class="n">prefix</span><span class="p">:</span>
+            <span class="k">while</span> <span class="n">callable</span><span class="p">(</span><span class="n">thing</span><span class="p">):</span>
+                <span class="n">thing</span> <span class="o">=</span> <span class="n">thing</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">thing</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">thing</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">thing</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pos</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span>
+            <span class="n">thing</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_force_encoding</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">wrap</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pos</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">:</span>
+            <span class="c1"># XXX What to do? Our prefix does not fit.</span>
+            <span class="c1"># This makes sure we still output something,</span>
+            <span class="c1"># but it is completely arbitrary.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">-</span> <span class="mi">10</span>
+
+<div class="viewcode-block" id="PlainTextFormatter.write"><a class="viewcode-back" href="../../api/snakeoil.formatters.html#snakeoil.formatters.PlainTextFormatter.write">[docs]</a>    <span class="nd">@steal_docs</span><span class="p">(</span><span class="n">Formatter</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">wrap</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;wrap&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap</span><span class="p">)</span>
+        <span class="n">autoline</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;autoline&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">autoline</span><span class="p">)</span>
+        <span class="n">prefixes</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;prefixes&#39;</span><span class="p">)</span>
+        <span class="n">first_prefixes</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;first_prefixes&#39;</span><span class="p">)</span>
+        <span class="n">later_prefixes</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;later_prefixes&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">prefixes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">first_prefixes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">later_prefixes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s1">&#39;do not pass first_prefixes or later_prefixes &#39;</span>
+                    <span class="s1">&#39;if prefixes is passed&#39;</span><span class="p">)</span>
+            <span class="n">first_prefixes</span> <span class="o">=</span> <span class="n">later_prefixes</span> <span class="o">=</span> <span class="n">prefixes</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;prefix&#39;</span><span class="p">)</span>
+        <span class="n">first_prefix</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;first_prefix&#39;</span><span class="p">)</span>
+        <span class="n">later_prefix</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;later_prefix&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">first_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">later_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s1">&#39;do not pass first_prefix or later_prefix with prefix&#39;</span><span class="p">)</span>
+            <span class="n">first_prefix</span> <span class="o">=</span> <span class="n">later_prefix</span> <span class="o">=</span> <span class="n">prefix</span>
+        <span class="k">if</span> <span class="n">first_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">first_prefixes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s1">&#39;do not pass both first_prefix and first_prefixes&#39;</span><span class="p">)</span>
+            <span class="n">first_prefixes</span> <span class="o">=</span> <span class="p">(</span><span class="n">first_prefix</span><span class="p">,)</span>
+        <span class="k">if</span> <span class="n">later_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">later_prefixes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s1">&#39;do not pass both later_prefix and later_prefixes&#39;</span><span class="p">)</span>
+            <span class="n">later_prefixes</span> <span class="o">=</span> <span class="p">(</span><span class="n">later_prefix</span><span class="p">,)</span>
+        <span class="k">if</span> <span class="n">first_prefixes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">first_prefix</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">first_prefixes</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">later_prefixes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">later_prefix</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">later_prefixes</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+                <span class="c1"># If we&#39;re at the start of the line, write our prefix.</span>
+                <span class="c1"># There is a deficiency here: if neither our arg nor our</span>
+                <span class="c1"># prefix affect _pos (both are escape sequences or empty)</span>
+                <span class="c1"># we will write prefix more than once. This should not</span>
+                <span class="c1"># matter.</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pos</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_write_prefix</span><span class="p">(</span><span class="n">wrap</span><span class="p">)</span>
+                <span class="k">while</span> <span class="n">callable</span><span class="p">(</span><span class="n">arg</span><span class="p">):</span>
+                    <span class="n">arg</span> <span class="o">=</span> <span class="n">arg</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">arg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">arg</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+                <span class="n">conversion_needed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encoding_conversion_needed</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+                <span class="k">while</span> <span class="n">wrap</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pos</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">:</span>
+                    <span class="c1"># We have to split.</span>
+                    <span class="n">maxlen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pos</span>
+                    <span class="n">space</span> <span class="o">=</span> <span class="n">arg</span><span class="o">.</span><span class="n">rfind</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">maxlen</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">space</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                        <span class="c1"># No space to split on.</span>
+
+                        <span class="c1"># If we are on the first line we can simply go to</span>
+                        <span class="c1"># the next (this helps if the &quot;later&quot; prefix is</span>
+                        <span class="c1"># shorter and should not really matter if not).</span>
+
+                        <span class="c1"># If we are on the second line and have already</span>
+                        <span class="c1"># written something we can also go to the next</span>
+                        <span class="c1"># line.</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_in_first_line</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wrote_something</span><span class="p">:</span>
+                            <span class="n">bit</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="c1"># Forcibly split this as far to the right as</span>
+                            <span class="c1"># possible.</span>
+                            <span class="n">bit</span> <span class="o">=</span> <span class="n">arg</span><span class="p">[:</span><span class="n">maxlen</span><span class="p">]</span>
+                            <span class="n">arg</span> <span class="o">=</span> <span class="n">arg</span><span class="p">[</span><span class="n">maxlen</span><span class="p">:]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">bit</span> <span class="o">=</span> <span class="n">arg</span><span class="p">[:</span><span class="n">space</span><span class="p">]</span>
+                        <span class="c1"># Omit the space we split on.</span>
+                        <span class="n">arg</span> <span class="o">=</span> <span class="n">arg</span><span class="p">[</span><span class="n">space</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span>
+                    <span class="k">if</span> <span class="n">conversion_needed</span><span class="p">:</span>
+                        <span class="n">bit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_force_encoding</span><span class="p">(</span><span class="n">bit</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">bit</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_force_encoding</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pos</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_in_first_line</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_wrote_something</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_write_prefix</span><span class="p">(</span><span class="n">wrap</span><span class="p">)</span>
+
+                <span class="c1"># This fits.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_wrote_something</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_pos</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">conversion_needed</span><span class="p">:</span>
+                    <span class="n">arg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_force_encoding</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">autoline</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_force_encoding</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_wrote_something</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_pos</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_in_first_line</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">EPIPE</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">StreamClosed</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="k">raise</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">first_prefixes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">first_prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_prefix</span><span class="p">[:</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">first_prefixes</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="n">later_prefixes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">later_prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">later_prefix</span><span class="p">[:</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">later_prefixes</span><span class="p">)]</span></div>
+
+<div class="viewcode-block" id="PlainTextFormatter.fg"><a class="viewcode-back" href="../../api/snakeoil.formatters.html#snakeoil.formatters.PlainTextFormatter.fg">[docs]</a>    <span class="k">def</span> <span class="nf">fg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;change fg color</span>
+
+<span class="sd">        Compatibility method- no coloring escapes are returned from it.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span></div>
+
+<div class="viewcode-block" id="PlainTextFormatter.bg"><a class="viewcode-back" href="../../api/snakeoil.formatters.html#snakeoil.formatters.PlainTextFormatter.bg">[docs]</a>    <span class="k">def</span> <span class="nf">bg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;change bg color</span>
+
+<span class="sd">        Compatibility method- no coloring escapes are returned from it.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span></div>
+
+<div class="viewcode-block" id="PlainTextFormatter.flush"><a class="viewcode-back" href="../../api/snakeoil.formatters.html#snakeoil.formatters.PlainTextFormatter.flush">[docs]</a>    <span class="k">def</span> <span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stream</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div></div>
+
+
+
+
+
+
+<span class="k">class</span> <span class="nc">TerminfoDisabled</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Raised if Terminfo is disabled.&quot;&quot;&quot;</span>
+
+
+<span class="k">class</span> <span class="nc">_BogusTerminfo</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Internal terminfo exception.&quot;&quot;&quot;</span>
+
+
+<span class="k">class</span> <span class="nc">TerminfoUnsupported</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Raised if our terminal type is unsupported.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">term</span> <span class="o">=</span> <span class="n">term</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;unsupported terminal type: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">term</span><span class="si">!r}</span><span class="s1">&#39;</span>
+
+
+<span class="c1"># This is necessary because the curses module is optional (and we</span>
+<span class="c1"># should run on a very minimal python for bootstrapping).</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">curses</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">TerminfoColor</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="k">class</span> <span class="nc">TerminfoColor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Class encapsulating a specific terminfo entry for a color.</span>
+
+<span class="sd">        This should not generally be invoked by hand, instead returned by</span>
+<span class="sd">        the formatter itself.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;mode&quot;</span><span class="p">,</span> <span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;__weakref__&quot;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">color</span><span class="p">):</span>
+            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;mode&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
+            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;color&#39;</span><span class="p">,</span> <span class="n">color</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">formatter</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">formatter</span><span class="o">.</span><span class="n">_current_colors</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="n">formatter</span><span class="o">.</span><span class="n">_color_reset</span>
+                <span class="c1"># slight abuse of boolean True/False and 1/0 equivalence</span>
+                <span class="n">other</span> <span class="o">=</span> <span class="n">formatter</span><span class="o">.</span><span class="n">_current_colors</span><span class="p">[</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">other</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">res</span> <span class="o">=</span> <span class="n">res</span> <span class="o">+</span> <span class="n">other</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">default</span> <span class="o">=</span> <span class="n">curses</span><span class="o">.</span><span class="n">COLOR_WHITE</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">default</span> <span class="o">=</span> <span class="n">curses</span><span class="o">.</span><span class="n">COLOR_BLACK</span>
+                <span class="n">color</span> <span class="o">=</span> <span class="n">formatter</span><span class="o">.</span><span class="n">_colors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+                <span class="c1"># The curses module currently segfaults if handed a</span>
+                <span class="c1"># bogus template so check explicitly.</span>
+                <span class="n">template</span> <span class="o">=</span> <span class="n">formatter</span><span class="o">.</span><span class="n">_set_color</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">template</span><span class="p">:</span>
+                    <span class="n">res</span> <span class="o">=</span> <span class="n">curses</span><span class="o">.</span><span class="n">tparm</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">color</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">res</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;&#39;</span>
+                <span class="n">formatter</span><span class="o">.</span><span class="n">_current_colors</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span>
+            <span class="n">formatter</span><span class="o">.</span><span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> instances are immutable&quot;</span> <span class="o">%</span>
+                                 <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,))</span>
+
+    <span class="k">class</span> <span class="nc">TerminfoCode</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Encapsulates specific terminfo entry commands, reset for example.</span>
+
+<span class="sd">        This should not generally be invoked by hand, instead returned by</span>
+<span class="sd">        the formatter itself.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="s2">&quot;__weakref__&quot;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">_BogusTerminfo</span><span class="p">()</span>
+            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> instances are immutable&quot;</span> <span class="o">%</span>
+                                 <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,))</span>
+
+    <span class="k">class</span> <span class="nc">TerminfoMode</span><span class="p">(</span><span class="n">TerminfoCode</span><span class="p">):</span>
+
+        <span class="vm">__doc__</span> <span class="o">=</span> <span class="n">TerminfoCode</span><span class="o">.</span><span class="vm">__doc__</span>
+        <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
+
+        <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">formatter</span><span class="p">):</span>
+            <span class="n">formatter</span><span class="o">.</span><span class="n">_modes</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="n">formatter</span><span class="o">.</span><span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">class</span> <span class="nc">TerminfoReset</span><span class="p">(</span><span class="n">TerminfoCode</span><span class="p">):</span>
+
+        <span class="vm">__doc__</span> <span class="o">=</span> <span class="n">TerminfoCode</span><span class="o">.</span><span class="vm">__doc__</span>
+        <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
+
+        <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">formatter</span><span class="p">):</span>
+            <span class="n">formatter</span><span class="o">.</span><span class="n">_modes</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            <span class="n">formatter</span><span class="o">.</span><span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">class</span> <span class="nc">TerminfoFormatter</span><span class="p">(</span><span class="n">PlainTextFormatter</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Formatter writing to a tty, using terminfo to do colors.&quot;&quot;&quot;</span>
+
+        <span class="n">_colors</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">black</span><span class="o">=</span><span class="n">curses</span><span class="o">.</span><span class="n">COLOR_BLACK</span><span class="p">,</span>
+            <span class="n">red</span><span class="o">=</span><span class="n">curses</span><span class="o">.</span><span class="n">COLOR_RED</span><span class="p">,</span>
+            <span class="n">green</span><span class="o">=</span><span class="n">curses</span><span class="o">.</span><span class="n">COLOR_GREEN</span><span class="p">,</span>
+            <span class="n">yellow</span><span class="o">=</span><span class="n">curses</span><span class="o">.</span><span class="n">COLOR_YELLOW</span><span class="p">,</span>
+            <span class="n">blue</span><span class="o">=</span><span class="n">curses</span><span class="o">.</span><span class="n">COLOR_BLUE</span><span class="p">,</span>
+            <span class="n">magenta</span><span class="o">=</span><span class="n">curses</span><span class="o">.</span><span class="n">COLOR_MAGENTA</span><span class="p">,</span>
+            <span class="n">cyan</span><span class="o">=</span><span class="n">curses</span><span class="o">.</span><span class="n">COLOR_CYAN</span><span class="p">,</span>
+            <span class="n">white</span><span class="o">=</span><span class="n">curses</span><span class="o">.</span><span class="n">COLOR_WHITE</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">,</span> <span class="n">term</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Initialize.</span>
+
+<span class="sd">            :type stream: file-like object.</span>
+<span class="sd">            :param stream: stream to output to, defaulting to :py:class:`sys.stdout`.</span>
+<span class="sd">            :type term: string.</span>
+<span class="sd">            :param term: terminal type, pulled from the environment if omitted.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
+            <span class="n">fd</span> <span class="o">=</span> <span class="n">stream</span><span class="o">.</span><span class="n">fileno</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">term</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">term</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;TERM&#39;</span><span class="p">):</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">curses</span><span class="o">.</span><span class="n">setupterm</span><span class="p">(</span><span class="n">fd</span><span class="o">=</span><span class="n">fd</span><span class="p">,</span> <span class="n">term</span><span class="o">=</span><span class="n">term</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="n">curses</span><span class="o">.</span><span class="n">error</span><span class="p">:</span>
+                        <span class="k">pass</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">TerminfoDisabled</span><span class="p">(</span><span class="s1">&#39;no terminfo entries&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># TODO maybe do something more useful than raising curses.error</span>
+                <span class="c1"># if term is not in the terminfo db here?</span>
+                <span class="n">curses</span><span class="o">.</span><span class="n">setupterm</span><span class="p">(</span><span class="n">fd</span><span class="o">=</span><span class="n">fd</span><span class="p">,</span> <span class="n">term</span><span class="o">=</span><span class="n">term</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_term</span> <span class="o">=</span> <span class="n">term</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="n">curses</span><span class="o">.</span><span class="n">tigetnum</span><span class="p">(</span><span class="s1">&#39;cols&#39;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reset</span> <span class="o">=</span> <span class="n">TerminfoReset</span><span class="p">(</span><span class="n">curses</span><span class="o">.</span><span class="n">tigetstr</span><span class="p">(</span><span class="s1">&#39;sgr0&#39;</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">bold</span> <span class="o">=</span> <span class="n">TerminfoMode</span><span class="p">(</span><span class="n">curses</span><span class="o">.</span><span class="n">tigetstr</span><span class="p">(</span><span class="s1">&#39;bold&#39;</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">underline</span> <span class="o">=</span> <span class="n">TerminfoMode</span><span class="p">(</span><span class="n">curses</span><span class="o">.</span><span class="n">tigetstr</span><span class="p">(</span><span class="s1">&#39;smul&#39;</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_color_reset</span> <span class="o">=</span> <span class="n">curses</span><span class="o">.</span><span class="n">tigetstr</span><span class="p">(</span><span class="s1">&#39;op&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_set_color</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">curses</span><span class="o">.</span><span class="n">tigetstr</span><span class="p">(</span><span class="s1">&#39;setaf&#39;</span><span class="p">),</span>
+                    <span class="n">curses</span><span class="o">.</span><span class="n">tigetstr</span><span class="p">(</span><span class="s1">&#39;setab&#39;</span><span class="p">))</span>
+            <span class="k">except</span> <span class="p">(</span><span class="n">_BogusTerminfo</span><span class="p">,</span> <span class="n">curses</span><span class="o">.</span><span class="n">error</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">TerminfoUnsupported</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_term</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_color</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">TerminfoDisabled</span><span class="p">(</span>
+                    <span class="s1">&#39;setting background/foreground colors is not supported&#39;</span><span class="p">)</span>
+
+            <span class="n">curses</span><span class="o">.</span><span class="n">tparm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_color</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">curses</span><span class="o">.</span><span class="n">COLOR_WHITE</span><span class="p">)</span>
+
+            <span class="c1"># [fg, bg]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_current_colors</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_modes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pos</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fg_cache</span> <span class="o">=</span> <span class="n">defaultdictkey</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">TerminfoColor</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bg_cache</span> <span class="o">=</span> <span class="n">defaultdictkey</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">TerminfoColor</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="nd">@steal_docs</span><span class="p">(</span><span class="n">Formatter</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">fg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fg_cache</span><span class="p">[</span><span class="n">color</span><span class="p">]</span>
+
+        <span class="nd">@steal_docs</span><span class="p">(</span><span class="n">Formatter</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">bg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bg_cache</span><span class="p">[</span><span class="n">color</span><span class="p">]</span>
+
+        <span class="nd">@steal_docs</span><span class="p">(</span><span class="n">Formatter</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_modes</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_colors</span> <span class="o">!=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_current_colors</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_color_reset</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">EPIPE</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">StreamClosed</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="k">raise</span>
+
+        <span class="nd">@steal_docs</span><span class="p">(</span><span class="n">Formatter</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">title</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">string</span><span class="p">):</span>
+            <span class="c1"># I want to use curses.tigetflag(&#39;hs&#39;) here but at least</span>
+            <span class="c1"># the screen-s entry defines a tsl and fsl string but does</span>
+            <span class="c1"># not set the hs flag. So just check for the ability to</span>
+            <span class="c1"># jump to and out of the status line, without checking if</span>
+            <span class="c1"># the status line we&#39;re using exists.</span>
+            <span class="n">tsl</span> <span class="o">=</span> <span class="n">curses</span><span class="o">.</span><span class="n">tigetstr</span><span class="p">(</span><span class="s1">&#39;tsl&#39;</span><span class="p">)</span>
+            <span class="n">fsl</span> <span class="o">=</span> <span class="n">curses</span><span class="o">.</span><span class="n">tigetstr</span><span class="p">(</span><span class="s1">&#39;fsl&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tsl</span> <span class="ow">and</span> <span class="n">fsl</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                    <span class="n">tsl</span> <span class="o">+</span> <span class="n">string</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">encoding</span><span class="p">,</span> <span class="s1">&#39;replace&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">fsl</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stream</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">ObserverFormatter</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">real_formatter</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_formatter</span> <span class="o">=</span> <span class="n">real_formatter</span>
+
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_formatter</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">autoline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="fm">__getattr__</span> <span class="o">=</span> <span class="n">GetAttrProxy</span><span class="p">(</span><span class="s2">&quot;_formatter&quot;</span><span class="p">)</span>
+
+
+<span class="n">fileno_excepts</span> <span class="o">=</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="n">io</span><span class="o">.</span><span class="n">UnsupportedOperation</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_formatter"><a class="viewcode-back" href="../../api/snakeoil.formatters.html#snakeoil.formatters.get_formatter">[docs]</a><span class="k">def</span> <span class="nf">get_formatter</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">force_color</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;TerminfoFormatter if the stream is a tty, else PlainTextFormatter.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">TerminfoColor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">PlainTextFormatter</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">fd</span> <span class="o">=</span> <span class="n">stream</span><span class="o">.</span><span class="n">fileno</span><span class="p">()</span>
+    <span class="k">except</span> <span class="n">fileno_excepts</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># We do this instead of stream.isatty() because TerminfoFormatter</span>
+        <span class="c1"># needs an fd to pass to curses, not just a filelike talking to a tty.</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">isatty</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span> <span class="ow">or</span> <span class="n">force_color</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">term</span> <span class="o">=</span> <span class="s1">&#39;ansi&#39;</span> <span class="k">if</span> <span class="n">force_color</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="k">return</span> <span class="n">TerminfoFormatter</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">term</span><span class="o">=</span><span class="n">term</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="n">curses</span><span class="o">.</span><span class="n">error</span><span class="p">,</span> <span class="n">TerminfoDisabled</span><span class="p">,</span> <span class="n">TerminfoUnsupported</span><span class="p">):</span>
+                <span class="c1"># This happens if TERM is unset and possibly in more cases.</span>
+                <span class="c1"># Just fall back to the PlainTextFormatter.</span>
+                <span class="k">pass</span>
+    <span class="k">return</span> <span class="n">PlainTextFormatter</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="decorate_forced_wrapping"><a class="viewcode-back" href="../../api/snakeoil.formatters.html#snakeoil.formatters.decorate_forced_wrapping">[docs]</a><span class="k">def</span> <span class="nf">decorate_forced_wrapping</span><span class="p">(</span><span class="n">setting</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Decorator to force a specific line wrapping state for the duration of invocation.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">wrapped_func</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+            <span class="n">oldwrap</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">wrap</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">wrap</span> <span class="o">=</span> <span class="n">setting</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">wrap</span> <span class="o">=</span> <span class="n">oldwrap</span>
+        <span class="k">return</span> <span class="n">f</span>
+    <span class="k">return</span> <span class="n">wrapped_func</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.formatters</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

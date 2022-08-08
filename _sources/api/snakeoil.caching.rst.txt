@@ -1,0 +1,7 @@
+snakeoil.caching module
+=======================
+
+.. automodule:: snakeoil.caching
+   :members:
+   :undoc-members:
+   :show-inheritance:

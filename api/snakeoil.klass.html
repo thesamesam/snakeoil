@@ -1,0 +1,510 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>snakeoil.klass module &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="snakeoil.log module" href="snakeoil.log.html" />
+    <link rel="prev" title="snakeoil.iterables module" href="snakeoil.iterables.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.log.html" title="snakeoil.log module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.iterables.html" title="snakeoil.iterables module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" accesskey="U">snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.klass module</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-snakeoil.klass">
+<span id="snakeoil-klass-module"></span><h1>snakeoil.klass module<a class="headerlink" href="#module-snakeoil.klass" title="Permalink to this heading">¶</a></h1>
+<p>common class implementations, and optimizations</p>
+<p>The functionality contained within this module is of primary use for building
+classes themselves and cutting down on a significant amount of boilerplate
+involved in writing classes.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.klass.SlotsPicklingMixin">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">SlotsPicklingMixin</span></span><a class="reference internal" href="../_modules/snakeoil/klass.html#SlotsPicklingMixin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.klass.SlotsPicklingMixin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Default pickling support for classes that use __slots__.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.klass.alias">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">alias</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">aliases</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/klass.html#alias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.klass.alias" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Decorator for making methods callable through aliases.</p>
+<p>This decorator must be used inside a class decorated with &#64;aliased.</p>
+<p>Example usage:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.klass</span> <span class="kn">import</span> <span class="n">aliased</span><span class="p">,</span> <span class="n">alias</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nd">@aliased</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">Speak</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="nd">@alias</span><span class="p">(</span><span class="s1">&#39;yell&#39;</span><span class="p">,</span> <span class="s1">&#39;scream&#39;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">shout</span><span class="p">(</span><span class="n">message</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="k">return</span> <span class="n">message</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">speak</span> <span class="o">=</span> <span class="n">Speak</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">speak</span><span class="o">.</span><span class="n">shout</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="n">speak</span><span class="o">.</span><span class="n">yell</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="n">speak</span><span class="o">.</span><span class="n">scream</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.klass.alias_attr">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">alias_attr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target_attr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/klass.html#alias_attr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.klass.alias_attr" title="Permalink to this definition">¶</a></dt>
+<dd><p>return a property that will alias access to target_attr</p>
+<p>target_attr can be multiple getattrs in addition- <code class="docutils literal notranslate"><span class="pre">x.y.z</span></code> is valid for example</p>
+<p>Example Usage:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.klass</span> <span class="kn">import</span> <span class="n">alias_attr</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">foo</span><span class="p">:</span>
+<span class="gp">...</span>
+<span class="gp">... </span>  <span class="n">seq</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">... </span>  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">a</span>
+<span class="gp">...</span>
+<span class="gp">... </span>  <span class="n">b</span> <span class="o">=</span> <span class="n">alias_attr</span><span class="p">(</span><span class="s2">&quot;a&quot;</span><span class="p">)</span>
+<span class="gp">... </span>  <span class="n">recursive</span> <span class="o">=</span> <span class="n">alias_attr</span><span class="p">(</span><span class="s2">&quot;seq.__hash__&quot;</span><span class="p">)</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">o</span> <span class="o">=</span> <span class="n">foo</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">a</span><span class="p">)</span>
+<span class="go">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">b</span><span class="p">)</span>
+<span class="go">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">recursive</span> <span class="o">==</span> <span class="n">foo</span><span class="o">.</span><span class="n">seq</span><span class="o">.</span><span class="fm">__hash__</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.klass.alias_method">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">alias_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">doc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/klass.html#alias_method"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.klass.alias_method" title="Permalink to this definition">¶</a></dt>
+<dd><p>at runtime, redirect to another method</p>
+<p>This is primarily useful for when compatibility, or a protocol requires
+you to have the same functionality available at multiple spots- for example
+<code class="xref py py-func docutils literal notranslate"><span class="pre">dict.has_key()</span></code> and <code class="xref py py-func docutils literal notranslate"><span class="pre">dict.__contains__()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>attr</strong> – attribute to redirect to</p></li>
+<li><p><strong>name</strong> – <code class="docutils literal notranslate"><span class="pre">__name__</span></code> to force for the new method if desired</p></li>
+<li><p><strong>doc</strong> – <code class="docutils literal notranslate"><span class="pre">__doc__</span></code> to force for the new method if desired</p></li>
+</ul>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.klass</span> <span class="kn">import</span> <span class="n">alias_method</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">foon</span><span class="p">:</span>
+<span class="gp">... </span>  <span class="k">def</span> <span class="nf">orig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="mi">1</span>
+<span class="gp">... </span>  <span class="n">alias</span> <span class="o">=</span> <span class="n">alias_method</span><span class="p">(</span><span class="s2">&quot;orig&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">obj</span> <span class="o">=</span> <span class="n">foon</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">obj</span><span class="o">.</span><span class="n">orig</span><span class="p">()</span> <span class="o">==</span> <span class="n">obj</span><span class="o">.</span><span class="n">alias</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">obj</span><span class="o">.</span><span class="n">alias</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.klass.aliased">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">aliased</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/klass.html#aliased"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.klass.aliased" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class decorator used in combination with &#64;alias method decorator.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.klass.cached_hash">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">cached_hash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/klass.html#cached_hash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.klass.cached_hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>decorator to cache the hash value.</p>
+<p>It’s important to note that you should only be caching the hash value
+if you know it cannot change.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.klass</span> <span class="kn">import</span> <span class="n">cached_hash</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">foo</span><span class="p">:</span>
+<span class="gp">... </span>  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="bp">self</span><span class="o">.</span><span class="n">hash_invocations</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="gp">...</span>
+<span class="gp">... </span>  <span class="nd">@cached_hash</span>
+<span class="gp">... </span>  <span class="k">def</span> <span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="bp">self</span><span class="o">.</span><span class="n">hash_invocations</span> <span class="o">+=</span> <span class="mi">1</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="mi">12345</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="n">foo</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">f</span><span class="o">.</span><span class="n">hash_invocations</span> <span class="o">==</span> <span class="mi">0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">hash</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="o">==</span> <span class="mi">12345</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">f</span><span class="o">.</span><span class="n">hash_invocations</span> <span class="o">==</span> <span class="mi">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">hash</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="o">==</span> <span class="mi">12345</span>        <span class="c1"># note we still get the same value</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">f</span><span class="o">.</span><span class="n">hash_invocations</span> <span class="o">==</span> <span class="mi">1</span> <span class="c1"># and that the function was invoked only once.</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.klass.cached_property">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">cached_property</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kls=&lt;function</span> <span class="pre">_internal_jit_attr&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cls_setattr=False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/klass.html#cached_property"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.klass.cached_property" title="Permalink to this definition">¶</a></dt>
+<dd><p>like <cite>property</cite>, just with caching</p>
+<p>This is usable in classes that aren’t using slots; it exploits python
+lookup ordering such that on first access, the function is invoked generating
+the desired attribute.  It then assigns that content to the same name as the
+property- directly into the instance dictionary.  Subsequent accesses will
+find the value in the instance dictionary first- essentially just as fast
+as normal attribute access, just w/ the ability to generate the instance
+on first access (or to wipe the attribute and force a regeneration).</p>
+<p>Example Usage:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.klass</span> <span class="kn">import</span> <span class="n">cached_property</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">foo</span><span class="p">:</span>
+<span class="gp">...</span>
+<span class="gp">... </span>  <span class="nd">@cached_property</span>
+<span class="gp">... </span>  <span class="k">def</span> <span class="nf">attr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;invoked&quot;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="mi">1</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">obj</span> <span class="o">=</span> <span class="n">foo</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">attr</span><span class="p">)</span>
+<span class="go">invoked</span>
+<span class="go">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">attr</span><span class="p">)</span>
+<span class="go">1</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.klass.cached_property_named">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">cached_property_named</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kls=&lt;function</span> <span class="pre">_internal_jit_attr&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cls_setattr=False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/klass.html#cached_property_named"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.klass.cached_property_named" title="Permalink to this definition">¶</a></dt>
+<dd><p>variation of <cite>cached_property</cite>, just with the ability to explicitly set the attribute name</p>
+<p>Primarily of use for when the functor it’s wrapping has a generic name (
+<cite>functools.partial</cite> instances for example).
+Example Usage:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.klass</span> <span class="kn">import</span> <span class="n">cached_property_named</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">foo</span><span class="p">:</span>
+<span class="gp">...</span>
+<span class="gp">... </span>  <span class="nd">@cached_property_named</span><span class="p">(</span><span class="s2">&quot;attr&quot;</span><span class="p">)</span>
+<span class="gp">... </span>  <span class="k">def</span> <span class="nf">attr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;invoked&quot;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="mi">1</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">obj</span> <span class="o">=</span> <span class="n">foo</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">attr</span><span class="p">)</span>
+<span class="go">invoked</span>
+<span class="go">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">attr</span><span class="p">)</span>
+<span class="go">1</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.klass.generic_equality">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">generic_equality</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bases</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">real_type=&lt;class</span> <span class="pre">'type'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eq=&lt;function</span> <span class="pre">generic_attr_eq&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ne=&lt;function</span> <span class="pre">generic_attr_ne&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/klass.html#generic_equality"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.klass.generic_equality" title="Permalink to this definition">¶</a></dt>
+<dd><p>metaclass generating __eq__/__ne__ methods from an attribute list</p>
+<p>The consuming class must set a class attribute named __attr_comparison__
+that is a sequence that lists the attributes to compare in determining
+equality or a string naming the class attribute to pull the list of
+attributes from (e.g. ‘__slots__’).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raise<span class="colon">:</span></dt>
+<dd class="field-odd"><p>TypeError if __attr_comparison__ is incorrectly defined</p>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.klass</span> <span class="kn">import</span> <span class="n">generic_equality</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">foo</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">generic_equality</span><span class="p">):</span>
+<span class="gp">... </span>  <span class="n">__attr_comparison__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">)</span>
+<span class="gp">... </span>  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">foo</span><span class="p">()</span> <span class="o">==</span> <span class="n">foo</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span><span class="n">foo</span><span class="p">()</span> <span class="o">!=</span> <span class="n">foo</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">foo</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="n">foo</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">foo</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">!=</span> <span class="n">foo</span><span class="p">()</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.klass.immutable_instance">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">immutable_instance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bases</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">real_type=&lt;class</span> <span class="pre">'type'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/klass.html#immutable_instance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.klass.immutable_instance" title="Permalink to this definition">¶</a></dt>
+<dd><p>metaclass that makes instances of this class effectively immutable</p>
+<p>It still is possible to do object.__setattr__ to get around it during
+initialization, but usage of this class effectively prevents accidental
+modification, instead requiring explicit modification.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.klass.inject_immutable_instance">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">inject_immutable_instance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scope</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/klass.html#inject_immutable_instance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.klass.inject_immutable_instance" title="Permalink to this definition">¶</a></dt>
+<dd><p>inject immutable __setattr__ and __delattr__ implementations</p>
+<p>see immutable_instance for further details</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>scope</strong> – mapping to modify, inserting __setattr__ and __delattr__
+methods if they’re not yet defined.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.klass.inject_richcmp_methods_from_cmp">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">inject_richcmp_methods_from_cmp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scope</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/klass.html#inject_richcmp_methods_from_cmp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.klass.inject_richcmp_methods_from_cmp" title="Permalink to this definition">¶</a></dt>
+<dd><p>class namespace modifier injecting richcmp methods that rely on __cmp__ for py3k
+compatibility</p>
+<p>Note that this just injects generic implementations such as <code class="xref py py-func docutils literal notranslate"><span class="pre">generic_lt()</span></code>;
+if a method already exists, it will not override it.  This behaviour is primarily
+beneficial if the developer wants to optimize one specific method- __lt__ for sorting
+reasons for example, but performance is less of a concern for the other
+rich comparison methods.</p>
+<p>Example usage:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.klass</span> <span class="kn">import</span> <span class="n">inject_richcmp_methods_from_cmp</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.compatibility</span> <span class="kn">import</span> <span class="n">cmp</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">foo</span><span class="p">:</span>
+<span class="gp">...</span>
+<span class="gp">... </span>  <span class="c1"># note that for this example, we inject always since we&#39;re</span>
+<span class="gp">... </span>  <span class="c1"># explicitly accessing __ge__ methods- under py2k, they wouldn&#39;t</span>
+<span class="gp">... </span>  <span class="c1"># exist (__cmp__ would be sufficient).</span>
+<span class="gp">...</span>
+<span class="gp">... </span>  <span class="c1"># add the generic rich comparsion methods to the local class namespace</span>
+<span class="gp">... </span>  <span class="n">inject_richcmp_methods_from_cmp</span><span class="p">(</span><span class="nb">locals</span><span class="p">())</span>
+<span class="gp">...</span>
+<span class="gp">... </span>  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span>
+<span class="gp">...</span>
+<span class="gp">... </span>  <span class="k">def</span> <span class="nf">__cmp__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">c</span> <span class="o">=</span> <span class="n">cmp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">a</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<span class="gp">... </span>      <span class="n">c</span> <span class="o">=</span> <span class="n">cmp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">b</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">c</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">foo</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="fm">__ge__</span><span class="p">(</span><span class="n">foo</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">foo</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="fm">__eq__</span><span class="p">(</span><span class="n">foo</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>scope</strong> – the modifiable scope of a class namespace to work on</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.klass.instance_attrgetter">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">instance_attrgetter</span></span><a class="headerlink" href="#snakeoil.klass.instance_attrgetter" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">chained_getter</span></code></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.klass.jit_attr">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">jit_attr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kls=&lt;function</span> <span class="pre">_internal_jit_attr&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uncached_val=&lt;class</span> <span class="pre">'snakeoil.klass._singleton_kls'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/klass.html#jit_attr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.klass.jit_attr" title="Permalink to this definition">¶</a></dt>
+<dd><p>decorator to JIT generate, and cache the wrapped functions result in
+‘_’ + func.__name__ on the instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> – function to wrap</p></li>
+<li><p><strong>kls</strong> – internal arg, overridden if you need a tweaked version of
+<code class="xref py py-class docutils literal notranslate"><span class="pre">_internal_jit_attr</span></code></p></li>
+<li><p><strong>uncached_val</strong> – the value to treat as missing/force regeneration
+when accessing the instance.  Note this normally defaults to a singleton
+that will not be in use anywhere else.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>functor implementing the described behaviour</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.klass.jit_attr_ext_method">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">jit_attr_ext_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stored_attr_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cls_setattr=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kls=&lt;function</span> <span class="pre">_internal_jit_attr&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uncached_val=&lt;class</span> <span class="pre">'snakeoil.klass._singleton_kls'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">doc=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/klass.html#jit_attr_ext_method"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.klass.jit_attr_ext_method" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator handing maximal control of attribute JIT’ing to the invoker.</p>
+<p>See <code class="xref py py-class docutils literal notranslate"><span class="pre">internal_jit_attr</span></code> for documentation of the misc params.</p>
+<p>Generally speaking, you only need this when you are doing something rather <em>special</em>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.klass.jit_attr_named">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">jit_attr_named</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stored_attr_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cls_setattr=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kls=&lt;function</span> <span class="pre">_internal_jit_attr&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uncached_val=&lt;class</span> <span class="pre">'snakeoil.klass._singleton_kls'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">doc=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/klass.html#jit_attr_named"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.klass.jit_attr_named" title="Permalink to this definition">¶</a></dt>
+<dd><p>Version of <a class="reference internal" href="#snakeoil.klass.jit_attr" title="snakeoil.klass.jit_attr"><code class="xref py py-func docutils literal notranslate"><span class="pre">jit_attr()</span></code></a> decorator that allows for explicit control over the
+attribute name used to store the cache value.</p>
+<p>See <code class="xref py py-class docutils literal notranslate"><span class="pre">_internal_jit_attr</span></code> for documentation of the misc params.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.klass.jit_attr_none">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">jit_attr_none</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kls=&lt;function</span> <span class="pre">_internal_jit_attr&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/klass.html#jit_attr_none"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.klass.jit_attr_none" title="Permalink to this definition">¶</a></dt>
+<dd><p>Version of <a class="reference internal" href="#snakeoil.klass.jit_attr" title="snakeoil.klass.jit_attr"><code class="xref py py-func docutils literal notranslate"><span class="pre">jit_attr()</span></code></a> decorator that forces the uncached_val
+to None.</p>
+<p>This is mainly useful so that if any out of band forced regeneration of
+the value, they know they just have to write None to the attribute to
+force regeneration.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.klass.patch">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">patch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external_decorator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/klass.html#patch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.klass.patch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simplified monkeypatching via decorator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> – target method to replace</p></li>
+<li><p><strong>external_decorator</strong> – decorator used on target method,
+e.g. classmethod or staticmethod</p></li>
+</ul>
+</dd>
+</dl>
+<p>Example usage (that’s entirely useless):</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">math</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.klass</span> <span class="kn">import</span> <span class="n">patch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nd">@patch</span><span class="p">(</span><span class="s1">&#39;math.ceil&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">ceil</span><span class="p">(</span><span class="n">orig_ceil</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+<span class="gp">... </span>  <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.klass.reflective_hash">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">reflective_hash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/klass.html#reflective_hash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.klass.reflective_hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>default __hash__ implementation that returns a pregenerated hash attribute</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>attr</strong> – attribute name to pull the hash from on the instance</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>hash value for instance this func is used in.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.klass.static_attrgetter">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">static_attrgetter</span></span><a class="headerlink" href="#snakeoil.klass.static_attrgetter" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">attrgetter</span></code></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.klass.steal_docs">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.klass.</span></span><span class="sig-name descname"><span class="pre">steal_docs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_missing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/klass.html#steal_docs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.klass.steal_docs" title="Permalink to this definition">¶</a></dt>
+<dd><p>decorator to steal __doc__ off of a target class or function</p>
+<p>Specifically when the target is a class, it will look for a member matching
+the functors names from target, and clones those docs to that functor;
+otherwise, it will simply clone the targeted function’s docs to the
+functor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> – class or function to steal docs from</p></li>
+<li><p><strong>ignore_missing</strong> – if True, it’ll swallow the exception if it
+cannot find a matching method on the target_class.  This is rarely
+what you want- it’s mainly useful for cases like <cite>dict.has_key</cite>, where it
+exists in py2k but doesn’t in py3k</p></li>
+<li><p><strong>name</strong> – function name from class to steal docs from, by default the name of the
+decorated function is used; only used when the target is a class name</p></li>
+</ul>
+</dd>
+</dl>
+<p>Example Usage:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.klass</span> <span class="kn">import</span> <span class="n">steal_docs</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">foo</span><span class="p">(</span><span class="nb">list</span><span class="p">):</span>
+<span class="gp">... </span>  <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+<span class="gp">... </span>  <span class="k">def</span> <span class="nf">extend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">pass</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="n">foo</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">f</span><span class="o">.</span><span class="n">extend</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">==</span> <span class="nb">list</span><span class="o">.</span><span class="n">extend</span><span class="o">.</span><span class="vm">__doc__</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="snakeoil.iterables.html"
+                          title="previous chapter">snakeoil.iterables module</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="snakeoil.log.html"
+                          title="next chapter">snakeoil.log module</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.log.html" title="snakeoil.log module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.iterables.html" title="snakeoil.iterables module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.klass module</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

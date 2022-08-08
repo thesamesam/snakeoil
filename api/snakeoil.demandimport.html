@@ -1,0 +1,163 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>snakeoil.demandimport module &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="snakeoil.demandload module" href="snakeoil.demandload.html" />
+    <link rel="prev" title="snakeoil.decorators module" href="snakeoil.decorators.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.demandload.html" title="snakeoil.demandload module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.decorators.html" title="snakeoil.decorators module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" accesskey="U">snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.demandimport module</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-snakeoil.demandimport">
+<span id="snakeoil-demandimport-module"></span><h1>snakeoil.demandimport module<a class="headerlink" href="#module-snakeoil.demandimport" title="Permalink to this heading">¶</a></h1>
+<p>Import modules on demand.</p>
+<p>See <a class="reference external" href="https://bugs.python.org/issue17621">https://bugs.python.org/issue17621</a> for background.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.demandimport.disable">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.demandimport.</span></span><span class="sig-name descname"><span class="pre">disable</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/demandimport.html#disable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.demandimport.disable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Disable lazy loading for all future module imports.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.demandimport.disabled">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.demandimport.</span></span><span class="sig-name descname"><span class="pre">disabled</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/demandimport.html#disabled"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.demandimport.disabled" title="Permalink to this definition">¶</a></dt>
+<dd><p>Context manager for temporarily disabling lazy imports.</p>
+<p>Example usage:
+&gt;&gt;&gt;   from importlib.util import _LazyModule
+&gt;&gt;&gt;   from snakeoil import demandimport
+&gt;&gt;&gt;   demandimport.enable()
+&gt;&gt;&gt;
+&gt;&gt;&gt;   with demandimport.disabled():
+&gt;&gt;&gt;      from module import submodule
+&gt;&gt;&gt;   assert not isinstance(submodule, _LazyModule)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.demandimport.enable">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.demandimport.</span></span><span class="sig-name descname"><span class="pre">enable</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/demandimport.html#enable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.demandimport.enable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enable lazy loading for all future module imports.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.demandimport.enabled">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.demandimport.</span></span><span class="sig-name descname"><span class="pre">enabled</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/demandimport.html#enabled"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.demandimport.enabled" title="Permalink to this definition">¶</a></dt>
+<dd><p>Context manager for temporarily enabling lazy imports.</p>
+<p>Useful as a workaround for avoiding circular import issues.</p>
+<p>Example usage:
+&gt;&gt;&gt;   from importlib.util import _LazyModule
+&gt;&gt;&gt;   from snakeoil import demandimport
+&gt;&gt;&gt;
+&gt;&gt;&gt;   with demandimport.enabled():
+&gt;&gt;&gt;      from module import submodule
+&gt;&gt;&gt;   assert isinstance(submodule, _LazyModule)
+&gt;&gt;&gt;   from module2 import submodule2
+&gt;&gt;&gt;   assert not isinstance(submodule2, _LazyModule)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.demandimport.is_enabled">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.demandimport.</span></span><span class="sig-name descname"><span class="pre">is_enabled</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/demandimport.html#is_enabled"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.demandimport.is_enabled" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine if lazy loading is currently enabled.</p>
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="snakeoil.decorators.html"
+                          title="previous chapter">snakeoil.decorators module</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="snakeoil.demandload.html"
+                          title="next chapter">snakeoil.demandload module</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.demandload.html" title="snakeoil.demandload module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.decorators.html" title="snakeoil.decorators module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.demandimport module</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

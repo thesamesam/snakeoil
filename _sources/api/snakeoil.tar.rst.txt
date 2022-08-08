@@ -1,0 +1,7 @@
+snakeoil.tar module
+===================
+
+.. automodule:: snakeoil.tar
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,489 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>snakeoil.cli.arghparse module &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="snakeoil.cli.exceptions module" href="snakeoil.cli.exceptions.html" />
+    <link rel="prev" title="snakeoil.cli package" href="snakeoil.cli.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.cli.exceptions.html" title="snakeoil.cli.exceptions module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.cli.html" title="snakeoil.cli package"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="snakeoil.cli.html" accesskey="U">snakeoil.cli package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.cli.arghparse module</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-snakeoil.cli.arghparse">
+<span id="snakeoil-cli-arghparse-module"></span><h1>snakeoil.cli.arghparse module<a class="headerlink" href="#module-snakeoil.cli.arghparse" title="Permalink to this heading">¶</a></h1>
+<p>Various argparse actions, types, and miscellaneous extensions.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ArgparseCommand">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">ArgparseCommand</span></span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ArgparseCommand"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ArgparseCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ArgparseCommand.bind_to_parser">
+<span class="sig-name descname"><span class="pre">bind_to_parser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ArgparseCommand.bind_to_parser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ArgparseCommand.bind_to_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ArgumentParser">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">ArgumentParser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">suppress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subcmds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quiet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_help</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sorted_help</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">docs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">script</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prog</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ArgumentParser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ArgumentParser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#snakeoil.cli.arghparse.OptionalsParser" title="snakeoil.cli.arghparse.OptionalsParser"><code class="xref py py-class docutils literal notranslate"><span class="pre">OptionalsParser</span></code></a>, <a class="reference internal" href="#snakeoil.cli.arghparse.CsvActionsParser" title="snakeoil.cli.arghparse.CsvActionsParser"><code class="xref py py-class docutils literal notranslate"><span class="pre">CsvActionsParser</span></code></a></p>
+<p>Extended, argparse-compatible argument parser.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ArgumentParser.add_subparsers">
+<span class="sig-name descname"><span class="pre">add_subparsers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ArgumentParser.add_subparsers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ArgumentParser.add_subparsers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enable docs keyword argument support for argparse arguments.</p>
+<p>This is used to add extended, rST-formatted docs to man pages (or other
+generated doc formats) without affecting the regular, summarized help
+output for scripts.</p>
+<p>To use, import this module where argparse is used to create parsers so the
+‘docs’ keyword gets discarded during regular use. For document generation,
+enable the global _generate_docs variable in order to replace the
+summarized help strings with the extended doc strings.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ArgumentParser.bind_class">
+<span class="sig-name descname"><span class="pre">bind_class</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ArgumentParser.bind_class"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ArgumentParser.bind_class" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ArgumentParser.bind_delayed_default">
+<span class="sig-name descname"><span class="pre">bind_delayed_default</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">priority</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ArgumentParser.bind_delayed_default"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ArgumentParser.bind_delayed_default" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ArgumentParser.bind_early_parse">
+<span class="sig-name descname"><span class="pre">bind_early_parse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">functor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ArgumentParser.bind_early_parse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ArgumentParser.bind_early_parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator to bind a function for early parsing support.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ArgumentParser.bind_final_check">
+<span class="sig-name descname"><span class="pre">bind_final_check</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">functor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ArgumentParser.bind_final_check"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ArgumentParser.bind_final_check" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator to bind a function for argument validation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ArgumentParser.bind_main_func">
+<span class="sig-name descname"><span class="pre">bind_main_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">functor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ArgumentParser.bind_main_func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ArgumentParser.bind_main_func" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator to set a main function for the parser.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ArgumentParser.bind_parse_priority">
+<span class="sig-name descname"><span class="pre">bind_parse_priority</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">priority</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ArgumentParser.bind_parse_priority"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ArgumentParser.bind_parse_priority" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ArgumentParser.bind_pre_parse">
+<span class="sig-name descname"><span class="pre">bind_pre_parse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">functor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ArgumentParser.bind_pre_parse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ArgumentParser.bind_pre_parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator to bind a function for pre-parsing parser manipulation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ArgumentParser.bind_reset_defaults">
+<span class="sig-name descname"><span class="pre">bind_reset_defaults</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">functor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ArgumentParser.bind_reset_defaults"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ArgumentParser.bind_reset_defaults" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator to bind a function for resetting defaults before every parse run.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ArgumentParser.error">
+<span class="sig-name descname"><span class="pre">error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ArgumentParser.error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ArgumentParser.error" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print an error message and exit.</p>
+<p>Similar to argparse’s error() except usage information is not shown by
+default.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ArgumentParser.parse_args">
+<span class="sig-name descname"><span class="pre">parse_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ArgumentParser.parse_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ArgumentParser.parse_args" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ArgumentParser.parse_known_args">
+<span class="sig-name descname"><span class="pre">parse_known_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespace</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ArgumentParser.parse_known_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ArgumentParser.parse_known_args" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add support for running registered pre-parse functions.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ArgumentParser.parsers">
+<span class="sig-name descname"><span class="pre">parsers</span></span><a class="headerlink" href="#snakeoil.cli.arghparse.ArgumentParser.parsers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the ordered sequence of inherited parsers.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ArgumentParser.pre_parse">
+<span class="sig-name descname"><span class="pre">pre_parse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">namespace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ArgumentParser.pre_parse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ArgumentParser.pre_parse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ArgumentParser.subparsers">
+<span class="sig-name descname"><span class="pre">subparsers</span></span><a class="headerlink" href="#snakeoil.cli.arghparse.ArgumentParser.subparsers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the set of registered subparsers.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.CommaSeparatedElements">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">CommaSeparatedElements</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">option_strings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">const</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">choices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">required</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">help</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metavar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#CommaSeparatedElements"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.CommaSeparatedElements" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_AppendAction</span></code></p>
+<p>Split comma-separated disabled/neutral/enabled elements into lists.</p>
+<p>Disabled elements are prefixed with “-”, enabled elements are prefixed with
+“+”, and neutral elements are unprefixed.</p>
+<p>For example, from the sequence “-a,b,c,-d” would result in “a” and “d”
+being registered as disabled while “b” and “c” are enabled.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.CommaSeparatedElements.parse_values">
+<span class="sig-name descname"><span class="pre">parse_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#CommaSeparatedElements.parse_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.CommaSeparatedElements.parse_values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.CommaSeparatedElementsAppend">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">CommaSeparatedElementsAppend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">option_strings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">const</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">choices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">required</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">help</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metavar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#CommaSeparatedElementsAppend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.CommaSeparatedElementsAppend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#snakeoil.cli.arghparse.CommaSeparatedElements" title="snakeoil.cli.arghparse.CommaSeparatedElements"><code class="xref py py-class docutils literal notranslate"><span class="pre">CommaSeparatedElements</span></code></a></p>
+<p>Split comma-separated enabled and disabled values and append to lists.</p>
+<p>Multiple specified options append to instead of override the parsed args list.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.CommaSeparatedNegations">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">CommaSeparatedNegations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">option_strings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">const</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">choices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">required</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">help</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metavar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#CommaSeparatedNegations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.CommaSeparatedNegations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_AppendAction</span></code></p>
+<p>Split comma-separated enabled and disabled values into lists.</p>
+<p>Disabled values are prefixed with “-” while enabled values are entered as
+is.</p>
+<p>For example, from the sequence “-a,b,c,-d” would result in “a” and “d”
+being registered as disabled while “b” and “c” are enabled.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.CommaSeparatedNegations.parse_values">
+<span class="sig-name descname"><span class="pre">parse_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#CommaSeparatedNegations.parse_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.CommaSeparatedNegations.parse_values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.CommaSeparatedNegationsAppend">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">CommaSeparatedNegationsAppend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">option_strings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">const</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">choices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">required</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">help</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metavar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#CommaSeparatedNegationsAppend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.CommaSeparatedNegationsAppend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#snakeoil.cli.arghparse.CommaSeparatedNegations" title="snakeoil.cli.arghparse.CommaSeparatedNegations"><code class="xref py py-class docutils literal notranslate"><span class="pre">CommaSeparatedNegations</span></code></a></p>
+<p>Split comma-separated enabled and disabled values and append to lists.</p>
+<p>Multiple specified options append to instead of override the parsed args list.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.CommaSeparatedValues">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">CommaSeparatedValues</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">option_strings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">const</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">choices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">required</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">help</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metavar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#CommaSeparatedValues"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.CommaSeparatedValues" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_AppendAction</span></code></p>
+<p>Split comma-separated values into a list.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.CommaSeparatedValues.parse_values">
+<span class="sig-name descname"><span class="pre">parse_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#CommaSeparatedValues.parse_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.CommaSeparatedValues.parse_values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.CommaSeparatedValuesAppend">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">CommaSeparatedValuesAppend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">option_strings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">const</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">choices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">required</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">help</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metavar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#CommaSeparatedValuesAppend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.CommaSeparatedValuesAppend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#snakeoil.cli.arghparse.CommaSeparatedValues" title="snakeoil.cli.arghparse.CommaSeparatedValues"><code class="xref py py-class docutils literal notranslate"><span class="pre">CommaSeparatedValues</span></code></a>, <a class="reference internal" href="#snakeoil.cli.arghparse.ExtendAction" title="snakeoil.cli.arghparse.ExtendAction"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExtendAction</span></code></a></p>
+<p>Split comma-separated values and append them to a list.</p>
+<p>Multiple specified options append to instead of override the parsed args list.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.CsvActionsParser">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">CsvActionsParser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#CsvActionsParser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.CsvActionsParser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ArgumentParser</span></code></a></p>
+<p>Parser with custom, CSV actions registered for usage.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.CsvHelpFormatter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">CsvHelpFormatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prog</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indent_increment</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_help_position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">24</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#CsvHelpFormatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.CsvHelpFormatter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">HelpFormatter</span></code></p>
+<p>Add custom help formatting for comma-separated value actions.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.Delayed">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">Delayed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">option_strings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#Delayed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.Delayed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.Action" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.DelayedDefault">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">DelayedDefault</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invokable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#DelayedDefault"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.DelayedDefault" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#snakeoil.cli.arghparse.DelayedValue" title="snakeoil.cli.arghparse.DelayedValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">DelayedValue</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.DelayedDefault.wipe">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">wipe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attrs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#DelayedDefault.wipe"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.DelayedDefault.wipe" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.DelayedParse">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">DelayedParse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invokable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#DelayedParse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.DelayedParse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#snakeoil.cli.arghparse.DelayedValue" title="snakeoil.cli.arghparse.DelayedValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">DelayedValue</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.DelayedValue">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">DelayedValue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invokable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#DelayedValue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.DelayedValue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.EnableDebug">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">EnableDebug</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">option_strings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">required</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">help</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#EnableDebug"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.EnableDebug" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_StoreTrueAction</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.Expansion">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">Expansion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">option_strings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">help</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">required</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subst</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#Expansion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.Expansion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.Action" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ExtendAction">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">ExtendAction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">option_strings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">const</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">choices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">required</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">help</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metavar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ExtendAction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ExtendAction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_AppendAction</span></code></p>
+<p>Force multiple values to always be stored in a flat list.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.FileType">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">FileType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'r'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bufsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">errors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#FileType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.FileType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.FileType" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">FileType</span></code></a></p>
+<p>Extended file object factory supporting binary modes for stdin/stdout.</p>
+<p>See <a class="reference external" href="https://bugs.python.org/issue14156">https://bugs.python.org/issue14156</a> for a discussion of the issue.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ManHelpAction">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">ManHelpAction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">option_strings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'==SUPPRESS=='</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'==SUPPRESS=='</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">help</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ManHelpAction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ManHelpAction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_HelpAction</span></code></p>
+<p>Display man pages for long –help option and abbreviated output for -h.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.Namespace">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">Namespace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#Namespace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.Namespace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.Namespace" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Namespace</span></code></a></p>
+<p>Add support for popping attrs from the namespace.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.Namespace.pop">
+<span class="sig-name descname"><span class="pre">pop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default=&lt;object</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#Namespace.pop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.Namespace.pop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove and return an object from the namespace if it exists.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.OptionalsParser">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">OptionalsParser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prog=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">usage=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epilog=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parents=[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">formatter_class=&lt;class</span> <span class="pre">'argparse.HelpFormatter'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix_chars='-'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fromfile_prefix_chars=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">argument_default=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conflict_handler='error'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_help=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_abbrev=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exit_on_error=True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#OptionalsParser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.OptionalsParser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ArgumentParser</span></code></a></p>
+<p>Argument parser supporting parsing only optional arguments.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.OptionalsParser.parse_known_optionals">
+<span class="sig-name descname"><span class="pre">parse_known_optionals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#OptionalsParser.parse_known_optionals"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.OptionalsParser.parse_known_optionals" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse known optional arguments until the first positional or -h/–help.</p>
+<p>This is used to allow multiple shortcuts (like -c or -h) at both the
+global command level and the subcommand level. Otherwise, the argparse
+module wouldn’t allow two of the same shortcuts to exist at the same
+time.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.OrderedParse">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">OrderedParse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invokable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#OrderedParse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.OrderedParse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#snakeoil.cli.arghparse.DelayedValue" title="snakeoil.cli.arghparse.DelayedValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">DelayedValue</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ParseNonblockingStdin">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">ParseNonblockingStdin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ParseNonblockingStdin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ParseNonblockingStdin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.Action" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code></a></p>
+<p>Accept arguments from standard input in a non-blocking fashion.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.ParseStdin">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">ParseStdin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#ParseStdin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.ParseStdin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#snakeoil.cli.arghparse.ExtendAction" title="snakeoil.cli.arghparse.ExtendAction"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExtendAction</span></code></a></p>
+<p>Accept arguments from standard input in a blocking fashion.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.SortedHelpFormatter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">SortedHelpFormatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prog</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indent_increment</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_help_position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">24</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#SortedHelpFormatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.SortedHelpFormatter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#snakeoil.cli.arghparse.CsvHelpFormatter" title="snakeoil.cli.arghparse.CsvHelpFormatter"><code class="xref py py-class docutils literal notranslate"><span class="pre">CsvHelpFormatter</span></code></a></p>
+<p>Help formatter that sorts arguments by option strings.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.SortedHelpFormatter.add_arguments">
+<span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">actions</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#SortedHelpFormatter.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.SortedHelpFormatter.add_arguments" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.StoreBool">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">StoreBool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">option_strings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">const</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">required</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">help</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metavar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'BOOLEAN'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#StoreBool"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.StoreBool" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_StoreAction</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.StoreBool.boolean">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">boolean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#StoreBool.boolean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.StoreBool.boolean" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.SubcmdAbbrevArgumentParser">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">SubcmdAbbrevArgumentParser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prog=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">usage=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epilog=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parents=[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">formatter_class=&lt;class</span> <span class="pre">'argparse.HelpFormatter'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix_chars='-'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fromfile_prefix_chars=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">argument_default=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conflict_handler='error'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_help=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_abbrev=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exit_on_error=True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#SubcmdAbbrevArgumentParser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.SubcmdAbbrevArgumentParser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ArgumentParser</span></code></a></p>
+<p>Argparse-compatible argument parser that supports abbreviating subcommands.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.Verbosity">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">Verbosity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">option_strings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">required</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">help</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#Verbosity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.Verbosity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.Action" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code></a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.bounded_int">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">bounded_int</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">desc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#bounded_int"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.bounded_int" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if argument is an integer and matches defined bounds.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.create_dir">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">create_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#create_dir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.create_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if argument path exists and is a directory, if it doesn’t exist create it.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.existent_dir">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">existent_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#existent_dir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.existent_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if argument path exists and is a directory.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.existent_path">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">existent_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#existent_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.existent_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if file argument path exists.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.cli.arghparse.positive_int">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.cli.arghparse.</span></span><span class="sig-name descname"><span class="pre">positive_int</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/cli/arghparse.html#positive_int"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.cli.arghparse.positive_int" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if argument is a positive integer.</p>
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="snakeoil.cli.html"
+                          title="previous chapter">snakeoil.cli package</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="snakeoil.cli.exceptions.html"
+                          title="next chapter">snakeoil.cli.exceptions module</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.cli.exceptions.html" title="snakeoil.cli.exceptions module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.cli.html" title="snakeoil.cli package"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="snakeoil.cli.html" >snakeoil.cli package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.cli.arghparse module</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

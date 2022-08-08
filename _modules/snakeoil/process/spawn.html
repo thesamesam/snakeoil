@@ -1,0 +1,522 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>snakeoil.process.spawn &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../process.html" accesskey="U">snakeoil.process</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.process.spawn</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for snakeoil.process.spawn</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">subprocess related functionality</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;cleanup_pids&quot;</span><span class="p">,</span> <span class="s2">&quot;spawn&quot;</span><span class="p">,</span> <span class="s2">&quot;spawn_sandbox&quot;</span><span class="p">,</span> <span class="s2">&quot;spawn_bash&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;spawn_get_output&quot;</span><span class="p">,</span> <span class="s2">&quot;bash_version&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="kn">import</span> <span class="nn">atexit</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">signal</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">from</span> <span class="nn">..mappings</span> <span class="kn">import</span> <span class="n">ProtectedDict</span>
+<span class="kn">from</span> <span class="nn">..osutils</span> <span class="kn">import</span> <span class="n">access</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">CommandNotFound</span><span class="p">,</span> <span class="n">closerange</span><span class="p">,</span> <span class="n">find_binary</span>
+
+<span class="n">BASH_BINARY</span> <span class="o">=</span> <span class="n">find_binary</span><span class="p">(</span><span class="s1">&#39;bash&#39;</span><span class="p">,</span> <span class="n">fallback</span><span class="o">=</span><span class="s1">&#39;/bin/bash&#39;</span><span class="p">)</span>
+<span class="n">SANDBOX_BINARY</span> <span class="o">=</span> <span class="n">find_binary</span><span class="p">(</span><span class="s1">&#39;sandbox&#39;</span><span class="p">,</span> <span class="n">fallback</span><span class="o">=</span><span class="s1">&#39;/usr/bin/sandbox&#39;</span><span class="p">)</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">resource</span>
+    <span class="n">max_fd_limit</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">getrlimit</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">RLIMIT_NOFILE</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">max_fd_limit</span> <span class="o">=</span> <span class="mi">256</span>
+
+
+<div class="viewcode-block" id="bash_version"><a class="viewcode-back" href="../../../api/snakeoil.process.spawn.html#snakeoil.process.spawn.bash_version">[docs]</a><span class="k">def</span> <span class="nf">bash_version</span><span class="p">(</span><span class="n">force</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get the system bash version of the form major.minor.patch.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">force</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">bash_version</span><span class="o">.</span><span class="n">cached_result</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">ret</span><span class="p">,</span> <span class="n">ver</span> <span class="o">=</span> <span class="n">spawn_get_output</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">BASH_BINARY</span><span class="p">,</span> <span class="s1">&#39;--norc&#39;</span><span class="p">,</span> <span class="s1">&#39;--noprofile&#39;</span><span class="p">,</span> <span class="s1">&#39;-c&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;printf $</span><span class="si">{BASH_VERSINFO[0]}</span><span class="s1">.$</span><span class="si">{BASH_VERSINFO[1]}</span><span class="s1">.$</span><span class="si">{BASH_VERSINFO[2]}</span><span class="s1">&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">ret</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">ver</span> <span class="o">=</span> <span class="n">ver</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+                <span class="n">ver</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ver</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">except</span> <span class="n">ExecutionFailure</span><span class="p">:</span>
+        <span class="n">ver</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">bash_version</span><span class="o">.</span><span class="n">cached_result</span> <span class="o">=</span> <span class="n">ver</span>
+    <span class="k">return</span> <span class="n">ver</span></div>
+
+
+<div class="viewcode-block" id="spawn_bash"><a class="viewcode-back" href="../../../api/snakeoil.process.spawn.html#snakeoil.process.spawn.spawn_bash">[docs]</a><span class="k">def</span> <span class="nf">spawn_bash</span><span class="p">(</span><span class="n">mycommand</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;spawn the command via bash -c&quot;&quot;&quot;</span>
+
+    <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">BASH_BINARY</span><span class="p">,</span> <span class="s1">&#39;--norc&#39;</span><span class="p">,</span> <span class="s1">&#39;--noprofile&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+        <span class="c1"># Print commands and their arguments as they are executed.</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;-x&quot;</span><span class="p">)</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;-c&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mycommand</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mycommand</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">mycommand</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">spawn</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="spawn_sandbox"><a class="viewcode-back" href="../../../api/snakeoil.process.spawn.html#snakeoil.process.spawn.spawn_sandbox">[docs]</a><span class="k">def</span> <span class="nf">spawn_sandbox</span><span class="p">(</span><span class="n">mycommand</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;spawn the command under sandboxed&quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_sandbox_capable</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">spawn_bash</span><span class="p">(</span><span class="n">mycommand</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">SANDBOX_BINARY</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mycommand</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">mycommand</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">mycommand</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">spawn</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span></div>
+
+
+<span class="n">_exithandlers</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">def</span> <span class="nf">atexit_register</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Wrapper around atexit.register that is needed in order to track</span>
+<span class="sd">    what is registered.  For example, when portage restarts itself via</span>
+<span class="sd">    os.execv, the atexit module does not work so we have to do it</span>
+<span class="sd">    manually by calling the run_exitfuncs() function in this module.&quot;&quot;&quot;</span>
+    <span class="n">_exithandlers</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kargs</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">run_exitfuncs</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;This should behave identically to the routine performed by</span>
+<span class="sd">    the atexit module at exit time.  It&#39;s only necessary to call this</span>
+<span class="sd">    function when atexit will not work (because of os.execv, for</span>
+<span class="sd">    example).&quot;&quot;&quot;</span>
+
+    <span class="n">exc_info</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">while</span> <span class="n">_exithandlers</span><span class="p">:</span>
+        <span class="n">func</span><span class="p">,</span> <span class="n">targs</span><span class="p">,</span> <span class="n">kargs</span> <span class="o">=</span> <span class="n">_exithandlers</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">targs</span><span class="p">,</span> <span class="o">**</span><span class="n">kargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">SystemExit</span><span class="p">:</span>
+            <span class="n">exc_info</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">exc_info</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">exc_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">exc_info</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="n">exc_info</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">with_traceback</span><span class="p">(</span><span class="n">exc_info</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+
+<span class="n">atexit</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">run_exitfuncs</span><span class="p">)</span>
+
+
+<span class="c1"># We need to make sure that any processes spawned are killed off when</span>
+<span class="c1"># we exit. spawn() takes care of adding and removing pids to this list</span>
+<span class="c1"># as it creates and cleans up processes.</span>
+<span class="n">spawned_pids</span> <span class="o">=</span> <span class="p">[]</span>
+<div class="viewcode-block" id="cleanup_pids"><a class="viewcode-back" href="../../../api/snakeoil.process.spawn.html#snakeoil.process.spawn.cleanup_pids">[docs]</a><span class="k">def</span> <span class="nf">cleanup_pids</span><span class="p">(</span><span class="n">pids</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;reap list of pids if specified, else all children&quot;&quot;&quot;</span>
+
+    <span class="k">global</span> <span class="n">spawned_pids</span>
+    <span class="k">if</span> <span class="n">pids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pids</span> <span class="o">=</span> <span class="n">spawned_pids</span>
+    <span class="k">elif</span> <span class="n">pids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">spawned_pids</span><span class="p">:</span>
+        <span class="n">pids</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pids</span><span class="p">)</span>
+
+    <span class="k">while</span> <span class="n">pids</span><span class="p">:</span>
+        <span class="n">pid</span> <span class="o">=</span> <span class="n">pids</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">waitpid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">WNOHANG</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">waitpid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="c1"># This pid has been cleaned up outside</span>
+            <span class="c1"># of spawn().</span>
+            <span class="k">pass</span>
+
+        <span class="k">if</span> <span class="n">spawned_pids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">pids</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">spawned_pids</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="spawn"><a class="viewcode-back" href="../../../api/snakeoil.process.spawn.html#snakeoil.process.spawn.spawn">[docs]</a><span class="k">def</span> <span class="nf">spawn</span><span class="p">(</span><span class="n">mycommand</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fd_pipes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">returnpid</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+          <span class="n">uid</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gid</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">umask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pgid</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;wrapper around execve</span>
+
+<span class="sd">    :type mycommand: list or string</span>
+<span class="sd">    :type env: mapping with string keys and values</span>
+<span class="sd">    :param name: controls what the process is named</span>
+<span class="sd">        (what it would show up as under top for example)</span>
+<span class="sd">    :type fd_pipes: mapping from existing fd to fd (inside the new process)</span>
+<span class="sd">    :param fd_pipes: controls what fd&#39;s are left open in the spawned process-</span>
+<span class="sd">    :param returnpid: controls whether spawn waits for the process to finish,</span>
+<span class="sd">        or returns the pid.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># mycommand is either a str or a list</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mycommand</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">mycommand</span> <span class="o">=</span> <span class="n">mycommand</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+
+    <span class="c1"># If an absolute path to an name file isn&#39;t given</span>
+    <span class="c1"># search for it unless we&#39;ve been told not to.</span>
+    <span class="n">binary</span> <span class="o">=</span> <span class="n">find_binary</span><span class="p">(</span><span class="n">mycommand</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1"># mypids will hold the pids of all processes created.</span>
+    <span class="n">mypids</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">pid</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">fork</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">pid</span><span class="p">:</span>
+        <span class="c1"># &#39;Catch &quot;Exception&quot;&#39;</span>
+        <span class="c1"># pylint: disable-msg=W0703</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">_exec</span><span class="p">(</span><span class="n">binary</span><span class="p">,</span> <span class="n">mycommand</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">fd_pipes</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">gid</span><span class="p">,</span> <span class="n">groups</span><span class="p">,</span>
+                  <span class="n">uid</span><span class="p">,</span> <span class="n">umask</span><span class="p">,</span> <span class="n">cwd</span><span class="p">,</span> <span class="n">pgid</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="c1"># We need to catch _any_ exception so that it doesn&#39;t</span>
+            <span class="c1"># propogate out of this function and cause exiting</span>
+            <span class="c1"># with anything other than os._exit()</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">:</span><span class="se">\n</span><span class="s2">   </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">mycommand</span><span class="p">)))</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">_exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Add the pid to our local and the global pid lists.</span>
+    <span class="n">mypids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+    <span class="n">spawned_pids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+
+    <span class="c1"># If the caller wants to handle cleaning up the processes, we tell</span>
+    <span class="c1"># it about all processes that were created.</span>
+    <span class="k">if</span> <span class="n">returnpid</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">mypids</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Otherwise we clean them up.</span>
+        <span class="k">while</span> <span class="n">mypids</span><span class="p">:</span>
+
+            <span class="c1"># Pull the last reader in the pipe chain. If all processes</span>
+            <span class="c1"># in the pipe are well behaved, it will die when the process</span>
+            <span class="c1"># it is reading from dies.</span>
+            <span class="n">pid</span> <span class="o">=</span> <span class="n">mypids</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="c1"># and wait for it.</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">waitpid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="c1"># When it&#39;s done, we can remove it from the</span>
+            <span class="c1"># global pid list as well.</span>
+            <span class="n">spawned_pids</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">retval</span><span class="p">:</span>
+                <span class="c1"># If it failed, kill off anything else that</span>
+                <span class="c1"># isn&#39;t dead yet.</span>
+                <span class="k">for</span> <span class="n">pid</span> <span class="ow">in</span> <span class="n">mypids</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">waitpid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">WNOHANG</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">)</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">waitpid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                    <span class="n">spawned_pids</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+
+                <span class="k">return</span> <span class="n">process_exit_code</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">cleanup_pids</span><span class="p">(</span><span class="n">mypids</span><span class="p">)</span>
+
+    <span class="c1"># Everything succeeded</span>
+    <span class="k">return</span> <span class="mi">0</span></div>
+
+
+<span class="k">def</span> <span class="nf">_exec</span><span class="p">(</span><span class="n">binary</span><span class="p">,</span> <span class="n">mycommand</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fd_pipes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gid</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+          <span class="n">groups</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">uid</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">umask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pgid</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;internal function to handle exec&#39;ing the child process.</span>
+
+<span class="sd">    If it succeeds this function does not return. It might raise an</span>
+<span class="sd">    exception, and since this runs after fork calling code needs to</span>
+<span class="sd">    make sure this is caught and os._exit is called if it does (or</span>
+<span class="sd">    atexit handlers run twice).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">env</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">env</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># If the process we&#39;re creating hasn&#39;t been given a name</span>
+    <span class="c1"># assign it the name of the binary.</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">binary</span><span class="p">)</span>
+
+    <span class="c1"># Set up the command&#39;s argument list.</span>
+    <span class="n">myargs</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span><span class="p">]</span>
+    <span class="n">myargs</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">mycommand</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+    <span class="k">def</span> <span class="nf">_find_unused_pid</span><span class="p">(</span><span class="n">protected</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">potential</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">count</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">potential</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">protected</span><span class="p">:</span>
+                <span class="n">protected</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">potential</span><span class="p">)</span>
+                <span class="k">yield</span> <span class="n">potential</span>
+
+    <span class="c1"># If we haven&#39;t been told what file descriptors to use</span>
+    <span class="c1"># default to propogating our stdin, stdout and stderr.</span>
+    <span class="k">if</span> <span class="n">fd_pipes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fd_pipes</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
+
+    <span class="c1"># Set up the command&#39;s pipes.</span>
+    <span class="n">my_fds</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># To protect from cases where direct assignment could</span>
+    <span class="c1"># clobber needed fds ({1:2, 2:1}) we first dupe the fds</span>
+    <span class="c1"># into unused fds.</span>
+    <span class="n">protected</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">fd_pipes</span><span class="p">)</span>
+    <span class="n">protected</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">fd_pipes</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+    <span class="n">fd_source</span> <span class="o">=</span> <span class="n">_find_unused_pid</span><span class="p">(</span><span class="n">protected</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">trg_fd</span><span class="p">,</span> <span class="n">src_fd</span> <span class="ow">in</span> <span class="n">fd_pipes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">trg_fd</span> <span class="o">!=</span> <span class="n">src_fd</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">trg_fd</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">protected</span><span class="p">:</span>
+                <span class="c1"># Nothing is in the way; move it immediately.</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">dup2</span><span class="p">(</span><span class="n">src_fd</span><span class="p">,</span> <span class="n">trg_fd</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">my_fds</span><span class="p">[</span><span class="n">trg_fd</span><span class="p">]</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">fd_source</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">dup2</span><span class="p">(</span><span class="n">src_fd</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+
+    <span class="c1"># reassign whats required now.</span>
+    <span class="k">for</span> <span class="n">trg_fd</span><span class="p">,</span> <span class="n">src_fd</span> <span class="ow">in</span> <span class="n">my_fds</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">dup2</span><span class="p">(</span><span class="n">src_fd</span><span class="p">,</span> <span class="n">trg_fd</span><span class="p">)</span>
+
+    <span class="c1"># Then close _all_ fds that haven&#39;t been explicitly</span>
+    <span class="c1"># requested to be kept open.</span>
+    <span class="n">last</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">fd</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">fd_pipes</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">fd</span> <span class="o">!=</span> <span class="n">last</span><span class="p">:</span>
+            <span class="n">closerange</span><span class="p">(</span><span class="n">last</span><span class="p">,</span> <span class="n">fd</span><span class="p">)</span>
+        <span class="n">last</span> <span class="o">=</span> <span class="n">fd</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="n">closerange</span><span class="p">(</span><span class="n">last</span><span class="p">,</span> <span class="n">max_fd_limit</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">cwd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">cwd</span><span class="p">)</span>
+
+    <span class="c1"># Set requested process permissions.</span>
+    <span class="k">if</span> <span class="n">gid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">setgid</span><span class="p">(</span><span class="n">gid</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">groups</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">setgroups</span><span class="p">(</span><span class="n">groups</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">uid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">setuid</span><span class="p">(</span><span class="n">uid</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">umask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">umask</span><span class="p">(</span><span class="n">umask</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">pgid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">setpgid</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pgid</span><span class="p">)</span>
+
+    <span class="c1"># finally, we reset the signal handlers that python screws with back to defaults.</span>
+    <span class="c1"># gentoo bug #309001, #289486</span>
+    <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGPIPE</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIG_DFL</span><span class="p">)</span>
+    <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGQUIT</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIG_DFL</span><span class="p">)</span>
+    <span class="c1"># unneeded, but being paranoid should spawn grow a spawn_func target again.</span>
+    <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIG_DFL</span><span class="p">)</span>
+    <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIG_DFL</span><span class="p">)</span>
+    <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGCHLD</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIG_DFL</span><span class="p">)</span>
+
+    <span class="c1"># And switch to the new process.</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">execve</span><span class="p">(</span><span class="n">binary</span><span class="p">,</span> <span class="n">myargs</span><span class="p">,</span> <span class="n">env</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="spawn_get_output"><a class="viewcode-back" href="../../../api/snakeoil.process.spawn.html#snakeoil.process.spawn.spawn_get_output">[docs]</a><span class="k">def</span> <span class="nf">spawn_get_output</span><span class="p">(</span><span class="n">mycommand</span><span class="p">,</span> <span class="n">spawn_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">raw_exit_code</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">collect_fds</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,),</span>
+                     <span class="n">fd_pipes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">split_lines</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Call spawn, collecting the output to fd&#39;s specified in collect_fds list.</span>
+
+<span class="sd">    :param spawn_type: the passed in function to call- typically :func:`spawn_bash`</span>
+<span class="sd">       :func:`spawn`, or :func:`spawn_sandbox`.</span>
+<span class="sd">       Defaults to :func:`spawn`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">spawn_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">spawn_type</span> <span class="o">=</span> <span class="n">spawn</span>
+
+    <span class="n">pr</span><span class="p">,</span> <span class="n">pw</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">fd_pipes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fd_pipes</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fd_pipes</span> <span class="o">=</span> <span class="n">ProtectedDict</span><span class="p">(</span><span class="n">fd_pipes</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">pr</span><span class="p">,</span> <span class="n">pw</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">pipe</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">collect_fds</span><span class="p">:</span>
+            <span class="n">fd_pipes</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">pw</span>
+        <span class="n">kwds</span><span class="p">[</span><span class="s2">&quot;returnpid&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">mypid</span> <span class="o">=</span> <span class="n">spawn_type</span><span class="p">(</span><span class="n">mycommand</span><span class="p">,</span> <span class="n">fd_pipes</span><span class="o">=</span><span class="n">fd_pipes</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">pw</span><span class="p">)</span>
+        <span class="n">pw</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mypid</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="n">ExecutionFailure</span><span class="p">()</span>
+
+        <span class="n">fd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">fdopen</span><span class="p">(</span><span class="n">pr</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">split_lines</span><span class="p">:</span>
+                <span class="n">mydata</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">mydata</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">fd</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">pw</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">retval</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">waitpid</span><span class="p">(</span><span class="n">mypid</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">cleanup_pids</span><span class="p">(</span><span class="n">mypid</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">raw_exit_code</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">retval</span><span class="p">,</span> <span class="n">mydata</span>
+        <span class="k">return</span> <span class="n">process_exit_code</span><span class="p">(</span><span class="n">retval</span><span class="p">),</span> <span class="n">mydata</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">pr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">pr</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                <span class="k">pass</span>
+        <span class="k">if</span> <span class="n">pw</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">pw</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                <span class="k">pass</span></div>
+
+
+<span class="k">def</span> <span class="nf">process_exit_code</span><span class="p">(</span><span class="n">retval</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process a waitpid returned exit code.</span>
+
+<span class="sd">    :return: The exit code if it exit&#39;d, the signal if it died from signalling.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># If it got a signal, return the signal that was sent.</span>
+    <span class="k">if</span> <span class="n">retval</span> <span class="o">&amp;</span> <span class="mh">0xff</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">retval</span> <span class="o">&amp;</span> <span class="mh">0xff</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span>
+
+    <span class="c1"># Otherwise, return its exit code.</span>
+    <span class="k">return</span> <span class="n">retval</span> <span class="o">&gt;&gt;</span> <span class="mi">8</span>
+
+
+<span class="k">class</span> <span class="nc">ExecutionFailure</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">=</span> <span class="n">msg</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;Execution Failure: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">msg</span><span class="si">}</span><span class="s1">&#39;</span>
+
+
+<span class="c1"># cached capabilities</span>
+
+
+<span class="k">def</span> <span class="nf">is_sandbox_capable</span><span class="p">(</span><span class="n">force</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">force</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">is_sandbox_capable</span><span class="o">.</span><span class="n">cached_result</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+    <span class="k">if</span> <span class="s1">&#39;SANDBOX_ACTIVE&#39;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+        <span class="c1"># we can not spawn a sandbox inside another one</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">SANDBOX_BINARY</span><span class="p">)</span> <span class="ow">and</span> <span class="n">access</span><span class="p">(</span><span class="n">SANDBOX_BINARY</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">X_OK</span><span class="p">)):</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">r</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="n">spawn_get_output</span><span class="p">([</span><span class="n">SANDBOX_BINARY</span><span class="p">,</span> <span class="s2">&quot;--version&quot;</span><span class="p">])</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="p">(</span><span class="n">r</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="s2">&quot;gentoo&quot;</span> <span class="ow">in</span> <span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+        <span class="k">except</span> <span class="n">ExecutionFailure</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">is_sandbox_capable</span><span class="o">.</span><span class="n">cached_result</span> <span class="o">=</span> <span class="n">res</span>
+    <span class="k">return</span> <span class="n">res</span>
+
+
+<span class="k">def</span> <span class="nf">is_userpriv_capable</span><span class="p">(</span><span class="n">force</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">force</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">is_userpriv_capable</span><span class="o">.</span><span class="n">cached_result</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">is_userpriv_capable</span><span class="o">.</span><span class="n">cached_result</span> <span class="o">=</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getuid</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">res</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../process.html" >snakeoil.process</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.process.spawn</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

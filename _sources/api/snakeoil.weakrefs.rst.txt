@@ -1,0 +1,7 @@
+snakeoil.weakrefs module
+========================
+
+.. automodule:: snakeoil.weakrefs
+   :members:
+   :undoc-members:
+   :show-inheritance:

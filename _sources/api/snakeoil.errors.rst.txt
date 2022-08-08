@@ -1,0 +1,7 @@
+snakeoil.errors module
+======================
+
+.. automodule:: snakeoil.errors
+   :members:
+   :undoc-members:
+   :show-inheritance:

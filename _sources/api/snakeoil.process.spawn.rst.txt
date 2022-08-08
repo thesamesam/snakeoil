@@ -1,0 +1,7 @@
+snakeoil.process.spawn module
+=============================
+
+.. automodule:: snakeoil.process.spawn
+   :members:
+   :undoc-members:
+   :show-inheritance:

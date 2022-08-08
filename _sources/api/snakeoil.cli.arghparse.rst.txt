@@ -1,0 +1,7 @@
+snakeoil.cli.arghparse module
+=============================
+
+.. automodule:: snakeoil.cli.arghparse
+   :members:
+   :undoc-members:
+   :show-inheritance:

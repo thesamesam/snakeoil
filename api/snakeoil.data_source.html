@@ -1,0 +1,470 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>snakeoil.data_source module &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="snakeoil.decorators module" href="snakeoil.decorators.html" />
+    <link rel="prev" title="snakeoil.currying module" href="snakeoil.currying.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.decorators.html" title="snakeoil.decorators module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.currying.html" title="snakeoil.currying module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" accesskey="U">snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.data_source module</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-snakeoil.data_source">
+<span id="snakeoil-data-source-module"></span><h1>snakeoil.data_source module<a class="headerlink" href="#module-snakeoil.data_source" title="Permalink to this heading">¶</a></h1>
+<p>A far more minimal form of file protocol encapsulation location and encoding into it</p>
+<p>The primary use for data_source’s is to encapsulate the following issues into a single object:</p>
+<ul class="simple">
+<li><p>is the data actually on disk (thus can I use more efficient ops against the file?).</p></li>
+<li><p>what is the preferred encoding?</p></li>
+<li><p>py3k compatibility concerns (bytes versus text file handles)</p></li>
+</ul>
+<p>Note that all file like handles returned from <cite>text_fileobj()</cite> and <cite>bytes_fileobj()</cite>
+have a required additional attribute- <em>exceptions</em>, either a single Exception class, or a
+tuple of Exception classes that can be thrown by that file handle during usage.</p>
+<p>This requirement exists purely to allow the consuming code to avoid having to know anything
+about the backing of the file like object.</p>
+<p>The proper way to use such a filehandle is as follows:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.data_source</span> <span class="kn">import</span> <span class="n">data_source</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">source</span> <span class="o">=</span> <span class="n">data_source</span><span class="p">(</span><span class="s2">&quot;It&#39;s a fez. I wear a fez now. Fezes are cool.&quot;</span><span class="p">,</span> <span class="n">mutable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handle</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">text_fileobj</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handle</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;You graffitied the oldest cliff face in the universe.&quot;</span><span class="p">)</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="gr">TypeError</span>:
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># if this where a normal file, it would be an IOError- it&#39;s impossible to guess the</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># correct exception to intercept, so instead we rely on the handle telling us what</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># we should catch;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">try</span><span class="p">:</span>
+<span class="gp">... </span>  <span class="n">handle</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;You wouldn&#39;t answer your phone.&quot;</span><span class="p">)</span>
+<span class="gp">... </span><span class="k">except</span> <span class="n">handle</span><span class="o">.</span><span class="n">exceptions</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<span class="gp">... </span>  <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;we caught the exception.&quot;</span><span class="p">)</span>
+<span class="go">we caught the exception.</span>
+</pre></div>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.data_source.base">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.data_source.</span></span><span class="sig-name descname"><span class="pre">base</span></span><a class="reference internal" href="../_modules/snakeoil/data_source.html#base"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.base" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>base data_source class; implementations of the protocol are advised
+to derive from this.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> – If None, no local path is available- else it’s the ondisk path to
+the data</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.data_source.base.bytes_fileobj">
+<span class="sig-name descname"><span class="pre">bytes_fileobj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/data_source.html#base.bytes_fileobj"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.base.bytes_fileobj" title="Permalink to this definition">¶</a></dt>
+<dd><p>get a bytes level filehandle for for this data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>writable</strong> – whether or not we need to write to the handle</p>
+</dd>
+<dt class="field-even">Raise<span class="colon">:</span></dt>
+<dd class="field-even"><p>TypeError if immutable and write is requested</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>file handle like object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.data_source.base.path">
+<span class="sig-name descname"><span class="pre">path</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#snakeoil.data_source.base.path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.data_source.base.text_fileobj">
+<span class="sig-name descname"><span class="pre">text_fileobj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/data_source.html#base.text_fileobj"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.base.text_fileobj" title="Permalink to this definition">¶</a></dt>
+<dd><p>get a text level filehandle for for this data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>writable</strong> – whether or not we need to write to the handle</p>
+</dd>
+<dt class="field-even">Raise<span class="colon">:</span></dt>
+<dd class="field-even"><p>TypeError if immutable and write is requested</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>file handle like object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.data_source.base.transfer_to_data_source">
+<span class="sig-name descname"><span class="pre">transfer_to_data_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">write_source</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/data_source.html#base.transfer_to_data_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.base.transfer_to_data_source" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.data_source.base.transfer_to_path">
+<span class="sig-name descname"><span class="pre">transfer_to_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/data_source.html#base.transfer_to_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.base.transfer_to_path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.data_source.base.weakref">
+<span class="sig-name descname"><span class="pre">weakref</span></span><a class="headerlink" href="#snakeoil.data_source.base.weakref" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.data_source.bytes_data_source">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.data_source.</span></span><span class="sig-name descname"><span class="pre">bytes_data_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mutable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/data_source.html#bytes_data_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.bytes_data_source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#snakeoil.data_source.data_source" title="snakeoil.data_source.data_source"><code class="xref py py-class docutils literal notranslate"><span class="pre">data_source</span></code></a></p>
+<p>Bytes data source.</p>
+<p>This does autoconversion between bytes/text as needed.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.data_source.bz2_source">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.data_source.</span></span><span class="sig-name descname"><span class="pre">bz2_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mutable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/data_source.html#bz2_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.bz2_source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#snakeoil.data_source.base" title="snakeoil.data_source.base"><code class="xref py py-class docutils literal notranslate"><span class="pre">base</span></code></a></p>
+<p>locally accessible bz2 archive</p>
+<p>Literally a bz2 file on disk.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.data_source.bz2_source.bytes_fileobj">
+<span class="sig-name descname"><span class="pre">bytes_fileobj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/data_source.html#bz2_source.bytes_fileobj"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.bz2_source.bytes_fileobj" title="Permalink to this definition">¶</a></dt>
+<dd><p>get a bytes level filehandle for for this data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>writable</strong> – whether or not we need to write to the handle</p>
+</dd>
+<dt class="field-even">Raise<span class="colon">:</span></dt>
+<dd class="field-even"><p>TypeError if immutable and write is requested</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>file handle like object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.data_source.bz2_source.mutable">
+<span class="sig-name descname"><span class="pre">mutable</span></span><a class="headerlink" href="#snakeoil.data_source.bz2_source.mutable" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.data_source.bz2_source.path">
+<span class="sig-name descname"><span class="pre">path</span></span><a class="headerlink" href="#snakeoil.data_source.bz2_source.path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.data_source.bz2_source.text_fileobj">
+<span class="sig-name descname"><span class="pre">text_fileobj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/data_source.html#bz2_source.text_fileobj"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.bz2_source.text_fileobj" title="Permalink to this definition">¶</a></dt>
+<dd><p>get a text level filehandle for for this data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>writable</strong> – whether or not we need to write to the handle</p>
+</dd>
+<dt class="field-even">Raise<span class="colon">:</span></dt>
+<dd class="field-even"><p>TypeError if immutable and write is requested</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>file handle like object</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.data_source.data_source">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.data_source.</span></span><span class="sig-name descname"><span class="pre">data_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mutable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/data_source.html#data_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.data_source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#snakeoil.data_source.base" title="snakeoil.data_source.base"><code class="xref py py-class docutils literal notranslate"><span class="pre">base</span></code></a></p>
+<p>base class encapsulating a purely virtual data source lacking an on disk location.</p>
+<p>Whether this be due to transformation steps necessary (pulling the data out of
+an archive for example), or the data being generated on the fly, this classes’s
+derivatives <a class="reference internal" href="#snakeoil.data_source.text_data_source" title="snakeoil.data_source.text_data_source"><code class="xref py py-class docutils literal notranslate"><span class="pre">text_data_source</span></code></a> and <a class="reference internal" href="#snakeoil.data_source.bytes_data_source" title="snakeoil.data_source.bytes_data_source"><code class="xref py py-class docutils literal notranslate"><span class="pre">bytes_data_source</span></code></a> are
+likely what you should be using for direct creation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – the raw data- should either be a string or bytes depending on your
+derivative</p></li>
+<li><p><strong>path</strong> – note that path is None for this class- no on disk location available.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.data_source.data_source.bytes_fileobj">
+<span class="sig-name descname"><span class="pre">bytes_fileobj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/data_source.html#data_source.bytes_fileobj"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.data_source.bytes_fileobj" title="Permalink to this definition">¶</a></dt>
+<dd><p>get a bytes level filehandle for for this data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>writable</strong> – whether or not we need to write to the handle</p>
+</dd>
+<dt class="field-even">Raise<span class="colon">:</span></dt>
+<dd class="field-even"><p>TypeError if immutable and write is requested</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>file handle like object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.data_source.data_source.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#snakeoil.data_source.data_source.data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.data_source.data_source.mutable">
+<span class="sig-name descname"><span class="pre">mutable</span></span><a class="headerlink" href="#snakeoil.data_source.data_source.mutable" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.data_source.data_source.text_fileobj">
+<span class="sig-name descname"><span class="pre">text_fileobj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/data_source.html#data_source.text_fileobj"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.data_source.text_fileobj" title="Permalink to this definition">¶</a></dt>
+<dd><p>get a text level filehandle for for this data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>writable</strong> – whether or not we need to write to the handle</p>
+</dd>
+<dt class="field-even">Raise<span class="colon">:</span></dt>
+<dd class="field-even"><p>TypeError if immutable and write is requested</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>file handle like object</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.data_source.invokable_data_source">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.data_source.</span></span><span class="sig-name descname"><span class="pre">invokable_data_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/data_source.html#invokable_data_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.invokable_data_source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#snakeoil.data_source.data_source" title="snakeoil.data_source.data_source"><code class="xref py py-class docutils literal notranslate"><span class="pre">data_source</span></code></a></p>
+<p>data source that takes a callable instead of the actual data item</p>
+<p>The callable takes a single argument- a boolean, True if a text fileobj
+is requested, False if None</p>
+<p>Note that this instance is explicitly readonly.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.data_source.invokable_data_source.bytes_fileobj">
+<span class="sig-name descname"><span class="pre">bytes_fileobj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/data_source.html#invokable_data_source.bytes_fileobj"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.invokable_data_source.bytes_fileobj" title="Permalink to this definition">¶</a></dt>
+<dd><p>get a bytes level filehandle for for this data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>writable</strong> – whether or not we need to write to the handle</p>
+</dd>
+<dt class="field-even">Raise<span class="colon">:</span></dt>
+<dd class="field-even"><p>TypeError if immutable and write is requested</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>file handle like object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.data_source.invokable_data_source.text_fileobj">
+<span class="sig-name descname"><span class="pre">text_fileobj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/data_source.html#invokable_data_source.text_fileobj"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.invokable_data_source.text_fileobj" title="Permalink to this definition">¶</a></dt>
+<dd><p>get a text level filehandle for for this data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>writable</strong> – whether or not we need to write to the handle</p>
+</dd>
+<dt class="field-even">Raise<span class="colon">:</span></dt>
+<dd class="field-even"><p>TypeError if immutable and write is requested</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>file handle like object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.data_source.invokable_data_source.wrap_function">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">wrap_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">invokable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returns_text</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returns_handle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding_hint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/data_source.html#invokable_data_source.wrap_function"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.invokable_data_source.wrap_function" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper function to automatically convert a function that returns text or bytes into appropriate
+callable</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>invokable</strong> – a callable that returns either text, or bytes, taking no args</p></li>
+<li><p><strong>returns_text</strong> – True if the data returned is text/basestring, False if Not</p></li>
+<li><p><strong>returns_handle</strong> – True if the object returned is a handle, False if not.  Note that returns_text
+still has meaning here- returns_text indicates what sort of data the handle returns from read
+invocations.</p></li>
+<li><p><strong>encoding_hint</strong> – the preferred encoding to use for encoding</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>invokable_data_source instance</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.data_source.local_source">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.data_source.</span></span><span class="sig-name descname"><span class="pre">local_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mutable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/data_source.html#local_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.local_source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#snakeoil.data_source.base" title="snakeoil.data_source.base"><code class="xref py py-class docutils literal notranslate"><span class="pre">base</span></code></a></p>
+<p>locally accessible data source</p>
+<p>Literally a file on disk.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.data_source.local_source.buffering_window">
+<span class="sig-name descname"><span class="pre">buffering_window</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">32768</span></em><a class="headerlink" href="#snakeoil.data_source.local_source.buffering_window" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.data_source.local_source.bytes_fileobj">
+<span class="sig-name descname"><span class="pre">bytes_fileobj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/data_source.html#local_source.bytes_fileobj"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.local_source.bytes_fileobj" title="Permalink to this definition">¶</a></dt>
+<dd><p>get a bytes level filehandle for for this data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>writable</strong> – whether or not we need to write to the handle</p>
+</dd>
+<dt class="field-even">Raise<span class="colon">:</span></dt>
+<dd class="field-even"><p>TypeError if immutable and write is requested</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>file handle like object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.data_source.local_source.encoding">
+<span class="sig-name descname"><span class="pre">encoding</span></span><a class="headerlink" href="#snakeoil.data_source.local_source.encoding" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.data_source.local_source.mutable">
+<span class="sig-name descname"><span class="pre">mutable</span></span><a class="headerlink" href="#snakeoil.data_source.local_source.mutable" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.data_source.local_source.path">
+<span class="sig-name descname"><span class="pre">path</span></span><a class="headerlink" href="#snakeoil.data_source.local_source.path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.data_source.local_source.text_fileobj">
+<span class="sig-name descname"><span class="pre">text_fileobj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/data_source.html#local_source.text_fileobj"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.local_source.text_fileobj" title="Permalink to this definition">¶</a></dt>
+<dd><p>get a text level filehandle for for this data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>writable</strong> – whether or not we need to write to the handle</p>
+</dd>
+<dt class="field-even">Raise<span class="colon">:</span></dt>
+<dd class="field-even"><p>TypeError if immutable and write is requested</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>file handle like object</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.data_source.text_data_source">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.data_source.</span></span><span class="sig-name descname"><span class="pre">text_data_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mutable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/data_source.html#text_data_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.data_source.text_data_source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#snakeoil.data_source.data_source" title="snakeoil.data_source.data_source"><code class="xref py py-class docutils literal notranslate"><span class="pre">data_source</span></code></a></p>
+<p>Text data source.</p>
+<p>This does autoconversionbetween bytes/text as needed.</p>
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="snakeoil.currying.html"
+                          title="previous chapter">snakeoil.currying module</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="snakeoil.decorators.html"
+                          title="next chapter">snakeoil.decorators module</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.decorators.html" title="snakeoil.decorators module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.currying.html" title="snakeoil.currying module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.data_source module</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

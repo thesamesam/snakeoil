@@ -1,0 +1,7 @@
+snakeoil.data\_source module
+============================
+
+.. automodule:: snakeoil.data_source
+   :members:
+   :undoc-members:
+   :show-inheritance:

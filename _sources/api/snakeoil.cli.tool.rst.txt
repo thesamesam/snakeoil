@@ -1,0 +1,7 @@
+snakeoil.cli.tool module
+========================
+
+.. automodule:: snakeoil.cli.tool
+   :members:
+   :undoc-members:
+   :show-inheritance:

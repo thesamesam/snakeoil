@@ -1,0 +1,18 @@
+snakeoil.chksum package
+=======================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   snakeoil.chksum.defaults
+
+Module contents
+---------------
+
+.. automodule:: snakeoil.chksum
+   :members:
+   :undoc-members:
+   :show-inheritance:

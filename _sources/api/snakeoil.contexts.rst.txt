@@ -1,0 +1,7 @@
+snakeoil.contexts module
+========================
+
+.. automodule:: snakeoil.contexts
+   :members:
+   :undoc-members:
+   :show-inheritance:

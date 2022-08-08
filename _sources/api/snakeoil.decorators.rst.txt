@@ -1,0 +1,7 @@
+snakeoil.decorators module
+==========================
+
+.. automodule:: snakeoil.decorators
+   :members:
+   :undoc-members:
+   :show-inheritance:

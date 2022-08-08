@@ -1,0 +1,58 @@
+snakeoil package
+================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   snakeoil.chksum
+   snakeoil.cli
+   snakeoil.compression
+   snakeoil.osutils
+   snakeoil.process
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   snakeoil.bash
+   snakeoil.caching
+   snakeoil.compatibility
+   snakeoil.containers
+   snakeoil.contexts
+   snakeoil.currying
+   snakeoil.data_source
+   snakeoil.decorators
+   snakeoil.demandimport
+   snakeoil.demandload
+   snakeoil.dependant_methods
+   snakeoil.descriptors
+   snakeoil.errors
+   snakeoil.fileutils
+   snakeoil.formatters
+   snakeoil.iterables
+   snakeoil.klass
+   snakeoil.log
+   snakeoil.mappings
+   snakeoil.modules
+   snakeoil.obj
+   snakeoil.pickling
+   snakeoil.sequences
+   snakeoil.stringio
+   snakeoil.strings
+   snakeoil.struct_compat
+   snakeoil.tar
+   snakeoil.version
+   snakeoil.weakrefs
+
+Module contents
+---------------
+
+.. automodule:: snakeoil
+   :members:
+   :undoc-members:
+   :show-inheritance:

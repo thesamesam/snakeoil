@@ -1,0 +1,7 @@
+snakeoil.compatibility module
+=============================
+
+.. automodule:: snakeoil.compatibility
+   :members:
+   :undoc-members:
+   :show-inheritance:

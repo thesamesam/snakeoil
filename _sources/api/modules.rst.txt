@@ -1,0 +1,7 @@
+snakeoil
+========
+
+.. toctree::
+   :maxdepth: 4
+
+   snakeoil

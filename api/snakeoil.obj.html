@@ -1,0 +1,219 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>snakeoil.obj module &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="snakeoil.pickling module" href="snakeoil.pickling.html" />
+    <link rel="prev" title="snakeoil.modules module" href="snakeoil.modules.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.pickling.html" title="snakeoil.pickling module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.modules.html" title="snakeoil.modules module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" accesskey="U">snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.obj module</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-snakeoil.obj">
+<span id="snakeoil-obj-module"></span><h1>snakeoil.obj module<a class="headerlink" href="#module-snakeoil.obj" title="Permalink to this heading">¶</a></h1>
+<p>Object trickery including delayed instantiation and proxying</p>
+<p>Note that the delayed instantiation/proxying that is in use here goes several steps
+beyond your average proxy implementation- this functionality will take every
+step possible to make the proxy appear as if there was _no_ proxy at all.</p>
+<p>Specifically this functionality is aware of cpython VM/interpretter semantics-
+cpython doesn’t use __getattribute__ to pull certain methods (<cite>__str__</cite> is an
+example most people are aware of of, <cite>__call__</cite>, <cite>__getitem__</cite>, etc are ones most
+aren’t).  Delayed instantiation is significantly complicated when these methods
+aren’t properly handled- you wind up having to pay very close attention to exactly
+where those instances are passed to, what access them, do they trigger any of the slotted
+special methods, etc.  There is a catch to this however- you can’t just define
+all slotted methods since if the proxy has those slotted methods, it will use them
+and you can’t just throw TypeErrors- the execution path has differeed.</p>
+<p>Part of the purpose of snakeoil is to make things that should just work, <em>work</em>- this
+implementation exists to do just that via removing those concerns.  The proxying
+knows what the resultant class will be and uses a custom proxy that will appear
+the same to the python machinery for slotted methods- literally the python VM
+won’t try to __iadd__ the proxy unless the resultant class would’ve supported that
+functionality, it will consider it callable if the resultant class would be, etc.</p>
+<p>By and large, this proxying is transparent if dealing in python objects (newstyle or old)-
+for example,</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.obj</span> <span class="kn">import</span> <span class="n">DelayedInstantiation_kls</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">foo</span><span class="p">:</span>
+<span class="gp">... </span>  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;instance was created&quot;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="bp">self</span><span class="o">.</span><span class="n">attribute</span> <span class="o">=</span> <span class="n">value</span>
+<span class="gp">... </span>  <span class="k">pass</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">delayed</span> <span class="o">=</span> <span class="n">DelayedInstantiation_kls</span><span class="p">(</span><span class="n">foo</span><span class="p">,</span> <span class="s2">&quot;bar&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">DelayedInstantiation_kls</span><span class="p">(</span><span class="n">foo</span><span class="p">),</span> <span class="n">foo</span><span class="p">))</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">delayed</span><span class="o">.</span><span class="n">attribute</span><span class="p">)</span>
+<span class="go">instance was created</span>
+<span class="go">bar</span>
+</pre></div>
+</div>
+<p>This proxying however cannot cover up certain cpython internal issues- specifically
+builtins.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.obj</span> <span class="kn">import</span> <span class="n">DelayedInstantiation</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">delayed_tuple</span> <span class="o">=</span> <span class="n">DelayedInstantiation</span><span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">delayed_tuple</span> <span class="o">+</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">))</span>
+<span class="go">(0, 1, 2, 3, 4, 5, 6, 7)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span> <span class="o">+</span> <span class="n">delayed_tuple</span><span class="p">)</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="gr">TypeError</span>: <span class="n">can only concatenate tuple (not &quot;CustomDelayedObject&quot;) to tuple</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># the reason this differs comes down to the cpython vm translating the previous</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># call into essentially the following-</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span><span class="o">.</span><span class="fm">__add__</span><span class="p">(</span><span class="n">delayed_tuple</span><span class="p">))</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="gr">TypeError</span>: <span class="n">can only concatenate tuple (not &quot;CustomDelayedObject&quot;) to tuple</span>
+</pre></div>
+</div>
+<p>Simply put, while we can emulate/proxy at the python VM layer appearing like the target,
+at the c level (which is where tuples are implemented) they expect a certain object
+structure, and reach in access it directly in certain cases.  This cannot be safely
+proxied (nor realistically can it be proxied in general without extremely horrible
+thunking tricks), so it is not attempted.</p>
+<p>Essentially, if DelayedInstantiation’s/proxies are transparent when dealing in native
+python objects- you will not see issues and you don’t have to care where those objects
+are used, passed to, etc.  If you’re trying to proxy a builtin, it’s possible, but you
+do need to keep an eye on where that instance is passed to since it’s not fully transparent.</p>
+<p>As demonstrated above, if you’re trying to proxy a builtin object, the consuming code
+will have to order its operations appropriately- prefering the proxy’s methods
+over builtin methods (essentially have the proxy on the left for general ops).</p>
+<p>If that doesn’t make sense to the reader, it’s probably best that the reader not
+try to proxy builtin objects like tuples, lists, dicts, sets, etc.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.obj.DelayedInstantiation">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.obj.</span></span><span class="sig-name descname"><span class="pre">DelayedInstantiation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resultant_kls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwd</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/obj.html#DelayedInstantiation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.obj.DelayedInstantiation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate an objects that does not get initialized before it is used.</p>
+<p>The returned object can be passed around without triggering
+initialization. The first time it is actually used (an attribute
+is accessed) it is initialized once.</p>
+<p>The returned “fake” object cannot completely reliably mimic a
+builtin type. It will usually work but some corner cases may fail
+in confusing ways. Make sure to test if DelayedInstantiation has
+no unwanted side effects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>resultant_kls</strong> – type object to fake an instance of.</p></li>
+<li><p><strong>func</strong> – callable, the return value is used as initialized object.</p></li>
+</ul>
+</dd>
+</dl>
+<p>All other positional args and keywords are passed to func during instantiation.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.obj.DelayedInstantiation_kls">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.obj.</span></span><span class="sig-name descname"><span class="pre">DelayedInstantiation_kls</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kls</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwd</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/obj.html#DelayedInstantiation_kls"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.obj.DelayedInstantiation_kls" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper for DelayedInstantiation</p>
+<p>This just invokes DelayedInstantiation(kls, kls *a, **kwd)</p>
+<p>See <a class="reference internal" href="#snakeoil.obj.DelayedInstantiation" title="snakeoil.obj.DelayedInstantiation"><code class="xref py py-func docutils literal notranslate"><span class="pre">DelayedInstantiation()</span></code></a> for argument specifics.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.obj.make_kls">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.obj.</span></span><span class="sig-name descname"><span class="pre">make_kls</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proxy_base=&lt;class</span> <span class="pre">'snakeoil.obj.BaseDelayedObject'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/obj.html#make_kls"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.obj.make_kls" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.obj.popattr">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.obj.</span></span><span class="sig-name descname"><span class="pre">popattr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default=&lt;object</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/obj.html#popattr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.obj.popattr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove and return an attribute from an object if it exists.</p>
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="snakeoil.modules.html"
+                          title="previous chapter">snakeoil.modules module</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="snakeoil.pickling.html"
+                          title="next chapter">snakeoil.pickling module</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.pickling.html" title="snakeoil.pickling module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.modules.html" title="snakeoil.modules module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.obj module</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

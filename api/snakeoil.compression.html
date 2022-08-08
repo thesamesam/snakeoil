@@ -1,0 +1,185 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>snakeoil.compression package &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="snakeoil.osutils package" href="snakeoil.osutils.html" />
+    <link rel="prev" title="snakeoil.cli.tool module" href="snakeoil.cli.tool.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.osutils.html" title="snakeoil.osutils package"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.cli.tool.html" title="snakeoil.cli.tool module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" accesskey="U">snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.compression package</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="snakeoil-compression-package">
+<h1>snakeoil.compression package<a class="headerlink" href="#snakeoil-compression-package" title="Permalink to this heading">¶</a></h1>
+<section id="module-snakeoil.compression">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-snakeoil.compression" title="Permalink to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.compression.ArComp">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.compression.</span></span><span class="sig-name descname"><span class="pre">ArComp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/compression.html#ArComp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.compression.ArComp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Generic archive and compressed file format support.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.compression.ArComp.binary">
+<span class="sig-name descname"><span class="pre">binary</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#snakeoil.compression.ArComp.binary" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.compression.ArComp.create">
+<span class="sig-name descname"><span class="pre">create</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dest</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/compression.html#ArComp.create"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.compression.ArComp.create" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.compression.ArComp.default_unpack_cmd">
+<span class="sig-name descname"><span class="pre">default_unpack_cmd</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#snakeoil.compression.ArComp.default_unpack_cmd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.compression.ArComp.known_exts">
+<span class="sig-name descname"><span class="pre">known_exts</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'.7Z':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._7Z'&gt;,</span> <span class="pre">'.7z':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._7Z'&gt;,</span> <span class="pre">'.LHA':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._LHA'&gt;,</span> <span class="pre">'.LHa':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._LHA'&gt;,</span> <span class="pre">'.RAR':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._Rar'&gt;,</span> <span class="pre">'.Z':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._GZ'&gt;,</span> <span class="pre">'.ZIP':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._Zip'&gt;,</span> <span class="pre">'.a':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._Ar'&gt;,</span> <span class="pre">'.bz':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._BZ2'&gt;,</span> <span class="pre">'.bz2':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._BZ2'&gt;,</span> <span class="pre">'.deb':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._Ar'&gt;,</span> <span class="pre">'.gz':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._GZ'&gt;,</span> <span class="pre">'.jar':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._Zip'&gt;,</span> <span class="pre">'.lha':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._LHA'&gt;,</span> <span class="pre">'.lzh':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._LHA'&gt;,</span> <span class="pre">'.lzma':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._LZMA'&gt;,</span> <span class="pre">'.rar':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._Rar'&gt;,</span> <span class="pre">'.tar':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._Tar'&gt;,</span> <span class="pre">'.tar.Z':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._TarGZ'&gt;,</span> <span class="pre">'.tar.bz2':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._TarBZ2'&gt;,</span> <span class="pre">'.tar.gz':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._TarGZ'&gt;,</span> <span class="pre">'.tar.lzma':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._TarLZMA'&gt;,</span> <span class="pre">'.tar.xz':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._TarXZ'&gt;,</span> <span class="pre">'.tar.z':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._TarGZ'&gt;,</span> <span class="pre">'.tbz':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._TarBZ2'&gt;,</span> <span class="pre">'.tbz2':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._TarBZ2'&gt;,</span> <span class="pre">'.tgz':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._TarGZ'&gt;,</span> <span class="pre">'.txz':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._TarXZ'&gt;,</span> <span class="pre">'.xz':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._XZ'&gt;,</span> <span class="pre">'.z':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._GZ'&gt;,</span> <span class="pre">'.zip':</span> <span class="pre">&lt;class</span> <span class="pre">'snakeoil.compression._Zip'&gt;}</span></em><a class="headerlink" href="#snakeoil.compression.ArComp.known_exts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.compression.ArComp.unpack">
+<span class="sig-name descname"><span class="pre">unpack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dest</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/compression.html#ArComp.unpack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.compression.ArComp.unpack" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="snakeoil.compression.ArCompError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.compression.</span></span><span class="sig-name descname"><span class="pre">ArCompError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">code</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/compression.html#ArCompError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.compression.ArCompError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="snakeoil.cli.exceptions.html#snakeoil.cli.exceptions.UserException" title="snakeoil.cli.exceptions.UserException"><code class="xref py py-class docutils literal notranslate"><span class="pre">UserException</span></code></a></p>
+<p>Generic archive and compressed file error.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.compression.compress_data">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.compression.</span></span><span class="sig-name descname"><span class="pre">compress_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">compressor_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">9</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/compression.html#compress_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.compression.compress_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.compression.compress_handle">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.compression.</span></span><span class="sig-name descname"><span class="pre">compress_handle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">compressor_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">handle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">9</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/compression.html#compress_handle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.compression.compress_handle" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.compression.decompress_data">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.compression.</span></span><span class="sig-name descname"><span class="pre">decompress_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">compressor_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/compression.html#decompress_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.compression.decompress_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.compression.decompress_handle">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.compression.</span></span><span class="sig-name descname"><span class="pre">decompress_handle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">compressor_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/compression.html#decompress_handle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.compression.decompress_handle" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="../index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">snakeoil.compression package</a><ul>
+<li><a class="reference internal" href="#module-snakeoil.compression">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="snakeoil.cli.tool.html"
+                          title="previous chapter">snakeoil.cli.tool module</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="snakeoil.osutils.html"
+                          title="next chapter">snakeoil.osutils package</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.osutils.html" title="snakeoil.osutils package"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.cli.tool.html" title="snakeoil.cli.tool module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.compression package</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

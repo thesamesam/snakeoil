@@ -1,0 +1,265 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>snakeoil.dependant_methods &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.dependant_methods</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for snakeoil.dependant_methods</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Metaclass to inject dependencies into method calls.</span>
+
+<span class="sd">Roughly, if you have 3 methods- that must be ran in the order of start, transfer, finish,</span>
+<span class="sd">this metaclass enables you to force it such that if *finish* is called first,</span>
+<span class="sd">start, than transfer, finally finish will be invoked transparently.</span>
+
+<span class="sd">Methods involved should all require just ``self``.</span>
+
+<span class="sd">The main usage for this code is to enable long chains of steps to be broken</span>
+<span class="sd">down into individual methods, and the consuming api not being required to</span>
+<span class="sd">know the proper order of invocation for that api unless they want to.</span>
+
+<span class="sd">Most consumers of this metaclass wind up making a ``finish`` method the final step-</span>
+<span class="sd">via that, consuming api&#39;s only requirement is knowing that if they invoke ``finish``</span>
+<span class="sd">all necessary steps will be ran in the correct order.</span>
+
+<span class="sd">Example usage:</span>
+
+<span class="sd">&gt;&gt;&gt; from snakeoil.dependant_methods import ForcedDepends</span>
+<span class="sd">&gt;&gt;&gt; class foo(metaclass=ForcedDepends):</span>
+<span class="sd">...   stage_depends = {&quot;finish&quot;: (&quot;do_step1&quot;, &quot;do_step2&quot;),</span>
+<span class="sd">...     &quot;do_step1&quot;:&quot;start&quot;, &quot;do_step2&quot;: &quot;start&quot;}</span>
+<span class="sd">...</span>
+<span class="sd">...   def finish(self):</span>
+<span class="sd">...     print(&quot;finish invoked&quot;)</span>
+<span class="sd">...     return True</span>
+<span class="sd">...   def do_step1(self):</span>
+<span class="sd">...     print(&quot;running step1&quot;)</span>
+<span class="sd">...     return True</span>
+<span class="sd">...   def do_step2(self):</span>
+<span class="sd">...     print(&quot;running step2&quot;)</span>
+<span class="sd">...     return True</span>
+<span class="sd">...   def start(self):</span>
+<span class="sd">...     print(&quot;starting&quot;)</span>
+<span class="sd">...     return True</span>
+<span class="sd">&gt;&gt;&gt;</span>
+<span class="sd">&gt;&gt;&gt; obj = foo()</span>
+<span class="sd">&gt;&gt;&gt; result = obj.finish()</span>
+<span class="sd">starting</span>
+<span class="sd">running step1</span>
+<span class="sd">running step2</span>
+<span class="sd">finish invoked</span>
+<span class="sd">&gt;&gt;&gt; result = obj.finish()</span>
+<span class="sd">&gt;&gt;&gt; # note, no output since finish has already been ran.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">.currying</span> <span class="kn">import</span> <span class="n">pre_curry</span>
+<span class="kn">from</span> <span class="nn">.sequences</span> <span class="kn">import</span> <span class="n">iflatten_instance</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;ForcedDepends&quot;</span><span class="p">,)</span>
+
+
+<span class="k">def</span> <span class="nf">_ensure_deps</span><span class="p">(</span><span class="n">cls_id</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+    <span class="n">ignore_deps</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;ignore_deps&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span> <span class="o">!=</span> <span class="n">cls_id</span><span class="p">:</span>
+        <span class="c1"># child class calling parent, or something similar. for cls_id</span>
+        <span class="c1"># don&#39;t fire the dependants, nor update state</span>
+        <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ignore_deps</span><span class="p">:</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">_yield_deps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage_depends</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+    <span class="n">r</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_stage_state&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stage_state</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">dep</span> <span class="ow">in</span> <span class="n">s</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">dep</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stage_state</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dep</span><span class="p">)</span><span class="o">.</span><span class="n">sd_raw_func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">r</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">r</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_stage_state</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">dep</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__stage_step_callback__</span><span class="p">(</span><span class="n">dep</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">r</span>
+
+
+<span class="k">def</span> <span class="nf">_yield_deps</span><span class="p">(</span><span class="n">inst</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+    <span class="c1"># While at first glance this looks like should use expandable_chain,</span>
+    <span class="c1"># it shouldn&#39;t. --charlie</span>
+    <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">k</span>
+        <span class="k">return</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">iflatten_instance</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="p">()))]</span>
+    <span class="k">while</span> <span class="n">s</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">s</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="n">exhausted</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">s</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">v</span><span class="p">:</span>
+                <span class="n">s</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                <span class="n">s</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">iflatten_instance</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+                <span class="n">exhausted</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">break</span>
+            <span class="k">yield</span> <span class="n">x</span>
+        <span class="k">if</span> <span class="n">exhausted</span><span class="p">:</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">__wrap_stage_dependencies__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">stage_depends</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">stage_depends</span>
+    <span class="c1"># we use id instead of the cls itself to prevent strong ref issues.</span>
+    <span class="n">cls_id</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">iflatten_instance</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">stage_depends</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span> <span class="k">if</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;class </span><span class="si">%r</span><span class="s2"> stage_depends specifies </span><span class="si">%r</span><span class="s2">, which doesn&#39;t exist&quot;</span> <span class="o">%</span>
+                <span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span>
+        <span class="n">f2</span> <span class="o">=</span> <span class="n">pre_curry</span><span class="p">(</span><span class="n">_ensure_deps</span><span class="p">,</span> <span class="n">cls_id</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+        <span class="n">f2</span><span class="o">.</span><span class="n">sd_raw_func</span> <span class="o">=</span> <span class="n">f</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">f2</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">__unwrap_stage_dependencies__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">stage_depends</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">stage_depends</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">iflatten_instance</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">stage_depends</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span> <span class="k">if</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;class </span><span class="si">%r</span><span class="s2"> stage_depends specifies </span><span class="si">%r</span><span class="s2">, which doesn&#39;t exist&quot;</span> <span class="o">%</span>
+                <span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s1">&#39;sd_raw_func&#39;</span><span class="p">,</span> <span class="n">f</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">__set_stage_state__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;set the completed stages to this sequence</span>
+
+<span class="sd">    :param state: a sequence of stage names.  The names are not checked</span>
+<span class="sd">      for validity- you can state that stage *x* has finished when there is no</span>
+<span class="sd">      stage x.</span>
+
+<span class="sd">      this should be used only when you know what you&#39;re doing</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_stage_state</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">__stage_step_callback__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stage</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;callback invoked whenever a stage is completed with the completed stage name&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="ForcedDepends"><a class="viewcode-back" href="../../api/snakeoil.dependant_methods.html#snakeoil.dependant_methods.ForcedDepends">[docs]</a><span class="k">class</span> <span class="nc">ForcedDepends</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Metaclass forcing methods to run in a certain order.</span>
+
+<span class="sd">    Dependencies are controlled by the existance of a stage_depends</span>
+<span class="sd">    dict in the class namespace. Its keys are method names, values are</span>
+<span class="sd">    either a string (name of preceeding method), or list/tuple</span>
+<span class="sd">    (proceeding methods).</span>
+
+<span class="sd">    :cvar stage_depends: mapping of *stage* -&gt; stages that must be ran first</span>
+<span class="sd">        Dependant stages can either be a string (single stage), or a tuple- multiple stages,</span>
+<span class="sd">        required in the order the&#39;re specified</span>
+<span class="sd">    :cvar __stage_step_callback__: callback accepting a single arg, the phase that just ran.</span>
+<span class="sd">        This method/callback is primarily useful for getting raw notification of stages that</span>
+<span class="sd">        have just completed- whether for notifying a user, or for debugging.</span>
+<span class="sd">    :cvar __set_stage_state__: method accepting a sequence; the stages completed for this</span>
+<span class="sd">        instance are set to that sequence.  This should be used with extreme care; primarily</span>
+<span class="sd">        useful for resuming a sequence of stages midway through.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ForcedDepends</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;stage_depends&#39;</span><span class="p">):</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">stage_depends</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;wrap&quot;</span><span class="p">,</span> <span class="s2">&quot;unwrap&quot;</span><span class="p">):</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;__</span><span class="si">%s</span><span class="s1">_stage_dependencies__&#39;</span> <span class="o">%</span> <span class="n">x</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="nb">classmethod</span><span class="p">(</span><span class="nb">globals</span><span class="p">()[</span><span class="n">s</span><span class="p">]))</span>
+
+        <span class="n">obj</span><span class="o">.</span><span class="n">__unwrap_stage_dependencies__</span><span class="p">()</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">__wrap_stage_dependencies__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;__force_stage_state__&#39;</span><span class="p">):</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">__set_stage_state__</span> <span class="o">=</span> <span class="n">__set_stage_state__</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;__stage_step_callback__&#39;</span><span class="p">):</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">__stage_step_callback__</span> <span class="o">=</span> <span class="n">__stage_step_callback__</span>
+        <span class="k">return</span> <span class="n">obj</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.dependant_methods</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

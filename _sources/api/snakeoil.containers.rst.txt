@@ -1,0 +1,7 @@
+snakeoil.containers module
+==========================
+
+.. automodule:: snakeoil.containers
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,21 @@
+snakeoil.cli package
+====================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   snakeoil.cli.arghparse
+   snakeoil.cli.exceptions
+   snakeoil.cli.input
+   snakeoil.cli.tool
+
+Module contents
+---------------
+
+.. automodule:: snakeoil.cli
+   :members:
+   :undoc-members:
+   :show-inheritance:

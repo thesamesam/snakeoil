@@ -1,0 +1,7 @@
+snakeoil.iterables module
+=========================
+
+.. automodule:: snakeoil.iterables
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,7 @@
+snakeoil.pickling module
+========================
+
+.. automodule:: snakeoil.pickling
+   :members:
+   :undoc-members:
+   :show-inheritance:

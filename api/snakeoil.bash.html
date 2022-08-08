@@ -1,0 +1,231 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>snakeoil.bash module &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="snakeoil.caching module" href="snakeoil.caching.html" />
+    <link rel="prev" title="snakeoil.process.spawn module" href="snakeoil.process.spawn.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.caching.html" title="snakeoil.caching module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.process.spawn.html" title="snakeoil.process.spawn module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" accesskey="U">snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.bash module</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-snakeoil.bash">
+<span id="snakeoil-bash-module"></span><h1>snakeoil.bash module<a class="headerlink" href="#module-snakeoil.bash" title="Permalink to this heading">¶</a></h1>
+<p>Functionality for reading bash like files</p>
+<p>Please note that while this functionality can do variable interpolation,
+it strictly treats the source as non-executable code.  It cannot parse
+subshells, variable additions, etc.</p>
+<p>Its primary usage is for reading things like gentoo make.conf’s, or
+libtool .la files that are bash compatible, but non-executable.</p>
+<dl class="py exception">
+<dt class="sig sig-object py" id="snakeoil.bash.BashParseError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.bash.</span></span><span class="sig-name descname"><span class="pre">BashParseError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">line</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">errmsg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/bash.html#BashParseError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.bash.BashParseError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
+<p>Exception thrown when a handle being parsed isn’t valid bash.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.bash.bash_parser">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.bash.</span></span><span class="sig-name descname"><span class="pre">bash_parser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sourcing_command</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/bash.html#bash_parser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.bash.bash_parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/shlex.html#shlex.shlex" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">shlex</span></code></a></p>
+<p>Fixed up shlex version for bash parsing.</p>
+<p>Corrects corner cases in quote expansion and adds variable interpolation.
+While it’s a fair bit slower than stdlib shlex, it parses a more complete
+subset of bash syntax than stdlib shlex.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.bash.bash_parser.read_token">
+<span class="sig-name descname"><span class="pre">read_token</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/bash.html#bash_parser.read_token"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.bash.bash_parser.read_token" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.bash.bash_parser.sourcehook">
+<span class="sig-name descname"><span class="pre">sourcehook</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">newfile</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/bash.html#bash_parser.sourcehook"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.bash.bash_parser.sourcehook" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook called on a filename to be sourced.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.bash.bash_parser.var_expand">
+<span class="sig-name descname"><span class="pre">var_expand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/bash.html#bash_parser.var_expand"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.bash.bash_parser.var_expand" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.bash.iter_read_bash">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.bash.</span></span><span class="sig-name descname"><span class="pre">iter_read_bash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bash_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_inline_comments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_line_cont</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enum_line</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/bash.html#iter_read_bash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.bash.iter_read_bash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over a file honoring bash commenting rules and line continuations.</p>
+<p>Note that it’s considered good behaviour to close filehandles, as
+such, either iterate fully through this, or use read_bash instead.
+Once the file object is no longer referenced the handle will be
+closed, but be proactive instead of relying on the garbage
+collector.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bash_source</strong> – either a file to read from
+or a string holding the filename to open.</p></li>
+<li><p><strong>allow_inline_comments</strong> – whether or not to prune characters
+after a # that isn’t at the start of a line.</p></li>
+<li><p><strong>allow_line_cont</strong> – whether or not to respect line continuations</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>yields lines w/ commenting stripped out</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.bash.read_bash">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.bash.</span></span><span class="sig-name descname"><span class="pre">read_bash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/bash.html#read_bash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.bash.read_bash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a file honoring bash commenting rules.</p>
+<p>See <a class="reference internal" href="#snakeoil.bash.iter_read_bash" title="snakeoil.bash.iter_read_bash"><code class="xref py py-func docutils literal notranslate"><span class="pre">iter_read_bash()</span></code></a> for parameter details.</p>
+<p>Returns a list of lines w/ comments stripped out.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.bash.read_bash_dict">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.bash.</span></span><span class="sig-name descname"><span class="pre">read_bash_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bash_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vars_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sourcing_command</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/bash.html#read_bash_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.bash.read_bash_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read bash source, yielding a dict of vars.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bash_source</strong> – either a file to read from
+or a string holding the filename to open</p></li>
+<li><p><strong>vars_dict</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)"><em>dict</em></a><em> or </em><em>None</em>) – initial ‘env’ for the sourcing.
+Is protected from modification.</p></li>
+<li><p><strong>sourcing_command</strong> (<em>callable</em>) – controls whether a source command exists.
+If one does and is encountered, then this func is called.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#snakeoil.bash.BashParseError" title="snakeoil.bash.BashParseError"><strong>BashParseError</strong></a> – thrown if invalid syntax is encountered.</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict representing the resultant env if bash executed the source.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.bash.read_dict">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.bash.</span></span><span class="sig-name descname"><span class="pre">read_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bash_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">splitter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'='</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_isiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_inline_comments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_errors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/bash.html#read_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.bash.read_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read key value pairs from a file, ignoring bash-style comments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>splitter</strong> – the string to split on.  Can be None to
+default to str.split’s default</p></li>
+<li><p><strong>bash_source</strong> – either a file to read from,
+or a string holding the filename to open.</p></li>
+<li><p><strong>allow_inline_comments</strong> – whether or not to prune characters
+after a # that isn’t at the start of a line.</p></li>
+<li><p><strong>ignore_errors</strong> – parse errors are logged instead of raised</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raise<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#snakeoil.bash.BashParseError" title="snakeoil.bash.BashParseError"><code class="xref py py-class docutils literal notranslate"><span class="pre">BashParseError</span></code></a> if there are parse errors found.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="snakeoil.process.spawn.html"
+                          title="previous chapter">snakeoil.process.spawn module</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="snakeoil.caching.html"
+                          title="next chapter">snakeoil.caching module</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.caching.html" title="snakeoil.caching module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.process.spawn.html" title="snakeoil.process.spawn module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.bash module</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

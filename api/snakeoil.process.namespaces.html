@@ -1,0 +1,193 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>snakeoil.process.namespaces module &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="snakeoil.process.spawn module" href="snakeoil.process.spawn.html" />
+    <link rel="prev" title="snakeoil.process package" href="snakeoil.process.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.process.spawn.html" title="snakeoil.process.spawn module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.process.html" title="snakeoil.process package"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="snakeoil.process.html" accesskey="U">snakeoil.process package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.process.namespaces module</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-snakeoil.process.namespaces">
+<span id="snakeoil-process-namespaces-module"></span><h1>snakeoil.process.namespaces module<a class="headerlink" href="#module-snakeoil.process.namespaces" title="Permalink to this heading">¶</a></h1>
+<p>Support for Linux namespaces</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.process.namespaces.create_netns">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.process.namespaces.</span></span><span class="sig-name descname"><span class="pre">create_netns</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/process/namespaces.html#create_netns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.process.namespaces.create_netns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start a new net namespace</p>
+<p>We will bring up the loopback interface, but that is all.</p>
+<p>If functionality is not available, then it will return w/out doing anything.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.process.namespaces.create_pidns">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.process.namespaces.</span></span><span class="sig-name descname"><span class="pre">create_pidns</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/process/namespaces.html#create_pidns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.process.namespaces.create_pidns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start a new pid namespace</p>
+<p>This will launch all the right manager processes.  The child that returns
+will be isolated in a new pid namespace.</p>
+<p>If functionality is not available, then it will return w/out doing anything.</p>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>The last pid outside of the namespace.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.process.namespaces.create_userns">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.process.namespaces.</span></span><span class="sig-name descname"><span class="pre">create_userns</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/process/namespaces.html#create_userns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.process.namespaces.create_userns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start a new user namespace</p>
+<p>If functionality is not available, then it will return w/out doing anything.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.process.namespaces.create_utsns">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.process.namespaces.</span></span><span class="sig-name descname"><span class="pre">create_utsns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hostname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/process/namespaces.html#create_utsns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.process.namespaces.create_utsns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start a new UTS namespace</p>
+<p>If functionality is not available, then it will return w/out doing anything.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.process.namespaces.setns">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.process.namespaces.</span></span><span class="sig-name descname"><span class="pre">setns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nstype</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/process/namespaces.html#setns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.process.namespaces.setns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Binding to the Linux setns system call. See setns(2) for details.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>fd: An open file descriptor or path to one.
+nstype: Namespace to enter; one of CLONE_*.</p>
+</dd>
+<dt>Raises:</dt><dd><p>OSError: if setns failed.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.process.namespaces.simple_unshare">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.process.namespaces.</span></span><span class="sig-name descname"><span class="pre">simple_unshare</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mount</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ipc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">net</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hostname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/process/namespaces.html#simple_unshare"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.process.namespaces.simple_unshare" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simpler helper for setting up namespaces quickly.</p>
+<p>If support for any namespace type is not available, we’ll silently skip it.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>mount: Create a mount namespace.
+uts: Create a UTS namespace.
+ipc: Create an IPC namespace.
+net: Create a net namespace.
+pid: Create a pid namespace.
+user: Create a user namespace.
+hostname: hostname to use for the UTS namespace</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.process.namespaces.unshare">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.process.namespaces.</span></span><span class="sig-name descname"><span class="pre">unshare</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flags</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/process/namespaces.html#unshare"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.process.namespaces.unshare" title="Permalink to this definition">¶</a></dt>
+<dd><p>Binding to the Linux unshare system call. See unshare(2) for details.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>flags: Namespaces to unshare; bitwise OR of CLONE_* flags.</p>
+</dd>
+<dt>Raises:</dt><dd><p>OSError: if unshare failed.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="snakeoil.process.html"
+                          title="previous chapter">snakeoil.process package</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="snakeoil.process.spawn.html"
+                          title="next chapter">snakeoil.process.spawn module</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.process.spawn.html" title="snakeoil.process.spawn module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.process.html" title="snakeoil.process package"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="snakeoil.process.html" >snakeoil.process package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.process.namespaces module</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

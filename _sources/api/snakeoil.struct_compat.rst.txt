@@ -1,0 +1,7 @@
+snakeoil.struct\_compat module
+==============================
+
+.. automodule:: snakeoil.struct_compat
+   :members:
+   :undoc-members:
+   :show-inheritance:

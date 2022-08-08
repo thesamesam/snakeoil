@@ -1,0 +1,7 @@
+snakeoil.demandload module
+==========================
+
+.. automodule:: snakeoil.demandload
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,208 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>snakeoil.demandimport &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.demandimport</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for snakeoil.demandimport</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Import modules on demand.</span>
+
+<span class="sd">See https://bugs.python.org/issue17621 for background.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">import</span> <span class="nn">importlib.machinery</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">importlib.util</span> <span class="kn">import</span> <span class="n">LazyLoader</span>
+
+<span class="c1"># global flag controlling lazy import support</span>
+<span class="n">_disabled</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="c1"># modules that have issues when lazily imported</span>
+<span class="n">_skip</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span>
+    <span class="s1">&#39;__builtin__&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;__future__&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;builtins&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;grp&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;pwd&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;OpenSSL.SSL&#39;</span><span class="p">,</span> <span class="c1"># pyopenssl</span>
+<span class="p">])</span>
+
+
+<span class="k">class</span> <span class="nc">_LazyLoader</span><span class="p">(</span><span class="n">LazyLoader</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;LazyLoader with extended support for disabling and skipping modules.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">exec_module</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Make the module load lazily.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">_disabled</span> <span class="ow">or</span> <span class="n">module</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="n">_skip</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loader</span><span class="o">.</span><span class="n">exec_module</span><span class="p">(</span><span class="n">module</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">exec_module</span><span class="p">(</span><span class="n">module</span><span class="p">)</span>
+
+
+<span class="c1"># custom loaders using our extended LazyLoader</span>
+<span class="n">_extensions_loader</span> <span class="o">=</span> <span class="n">_LazyLoader</span><span class="o">.</span><span class="n">factory</span><span class="p">(</span>
+    <span class="n">importlib</span><span class="o">.</span><span class="n">machinery</span><span class="o">.</span><span class="n">ExtensionFileLoader</span><span class="p">)</span>
+<span class="n">_bytecode_loader</span> <span class="o">=</span> <span class="n">_LazyLoader</span><span class="o">.</span><span class="n">factory</span><span class="p">(</span>
+    <span class="n">importlib</span><span class="o">.</span><span class="n">machinery</span><span class="o">.</span><span class="n">SourcelessFileLoader</span><span class="p">)</span>
+<span class="n">_source_loader</span> <span class="o">=</span> <span class="n">_LazyLoader</span><span class="o">.</span><span class="n">factory</span><span class="p">(</span><span class="n">importlib</span><span class="o">.</span><span class="n">machinery</span><span class="o">.</span><span class="n">SourceFileLoader</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_filefinder</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a custom FileFinder using our lazy loaders.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">importlib</span><span class="o">.</span><span class="n">machinery</span><span class="o">.</span><span class="n">FileFinder</span><span class="p">(</span>
+        <span class="n">path</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">_extensions_loader</span><span class="p">,</span> <span class="n">importlib</span><span class="o">.</span><span class="n">machinery</span><span class="o">.</span><span class="n">EXTENSION_SUFFIXES</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">_source_loader</span><span class="p">,</span> <span class="n">importlib</span><span class="o">.</span><span class="n">machinery</span><span class="o">.</span><span class="n">SOURCE_SUFFIXES</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">_bytecode_loader</span><span class="p">,</span> <span class="n">importlib</span><span class="o">.</span><span class="n">machinery</span><span class="o">.</span><span class="n">BYTECODE_SUFFIXES</span><span class="p">),</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="enable"><a class="viewcode-back" href="../../api/snakeoil.demandimport.html#snakeoil.demandimport.enable">[docs]</a><span class="k">def</span> <span class="nf">enable</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Enable lazy loading for all future module imports.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;SNAKEOIL_DEMANDIMPORT&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;n&#39;</span><span class="p">,</span> <span class="s1">&#39;no&#39;</span> <span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="s1">&#39;false&#39;</span><span class="p">):</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">path_hooks</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">_filefinder</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="is_enabled"><a class="viewcode-back" href="../../api/snakeoil.demandimport.html#snakeoil.demandimport.is_enabled">[docs]</a><span class="k">def</span> <span class="nf">is_enabled</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Determine if lazy loading is currently enabled.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_filefinder</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">path_hooks</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_disabled</span></div>
+
+
+<div class="viewcode-block" id="disable"><a class="viewcode-back" href="../../api/snakeoil.demandimport.html#snakeoil.demandimport.disable">[docs]</a><span class="k">def</span> <span class="nf">disable</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Disable lazy loading for all future module imports.&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">path_hooks</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">_filefinder</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="disabled"><a class="viewcode-back" href="../../api/snakeoil.demandimport.html#snakeoil.demandimport.disabled">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">disabled</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Context manager for temporarily disabling lazy imports.</span>
+
+<span class="sd">    Example usage:</span>
+<span class="sd">    &gt;&gt;&gt;   from importlib.util import _LazyModule</span>
+<span class="sd">    &gt;&gt;&gt;   from snakeoil import demandimport</span>
+<span class="sd">    &gt;&gt;&gt;   demandimport.enable()</span>
+<span class="sd">    &gt;&gt;&gt;</span>
+<span class="sd">    &gt;&gt;&gt;   with demandimport.disabled():</span>
+<span class="sd">    &gt;&gt;&gt;      from module import submodule</span>
+<span class="sd">    &gt;&gt;&gt;   assert not isinstance(submodule, _LazyModule)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_disabled</span>
+    <span class="n">enabled</span> <span class="o">=</span> <span class="n">is_enabled</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">enabled</span><span class="p">:</span>
+        <span class="n">_disabled</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">yield</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">enabled</span><span class="p">:</span>
+            <span class="n">_disabled</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="enabled"><a class="viewcode-back" href="../../api/snakeoil.demandimport.html#snakeoil.demandimport.enabled">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">enabled</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Context manager for temporarily enabling lazy imports.</span>
+
+<span class="sd">    Useful as a workaround for avoiding circular import issues.</span>
+
+<span class="sd">    Example usage:</span>
+<span class="sd">    &gt;&gt;&gt;   from importlib.util import _LazyModule</span>
+<span class="sd">    &gt;&gt;&gt;   from snakeoil import demandimport</span>
+<span class="sd">    &gt;&gt;&gt;</span>
+<span class="sd">    &gt;&gt;&gt;   with demandimport.enabled():</span>
+<span class="sd">    &gt;&gt;&gt;      from module import submodule</span>
+<span class="sd">    &gt;&gt;&gt;   assert isinstance(submodule, _LazyModule)</span>
+<span class="sd">    &gt;&gt;&gt;   from module2 import submodule2</span>
+<span class="sd">    &gt;&gt;&gt;   assert not isinstance(submodule2, _LazyModule)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_disabled</span>
+    <span class="n">enabled</span> <span class="o">=</span> <span class="n">is_enabled</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">enabled</span><span class="p">:</span>
+        <span class="n">_disabled</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">enable</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">yield</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">enabled</span><span class="p">:</span>
+            <span class="n">_disabled</span> <span class="o">=</span> <span class="kc">True</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.demandimport</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

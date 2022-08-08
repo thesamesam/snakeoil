@@ -1,0 +1,7 @@
+snakeoil.chksum.defaults module
+===============================
+
+.. automodule:: snakeoil.chksum.defaults
+   :members:
+   :undoc-members:
+   :show-inheritance:

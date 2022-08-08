@@ -1,0 +1,7 @@
+snakeoil.cli.exceptions module
+==============================
+
+.. automodule:: snakeoil.cli.exceptions
+   :members:
+   :undoc-members:
+   :show-inheritance:

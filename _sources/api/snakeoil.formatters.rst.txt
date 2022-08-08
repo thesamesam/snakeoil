@@ -1,0 +1,7 @@
+snakeoil.formatters module
+==========================
+
+.. automodule:: snakeoil.formatters
+   :members:
+   :undoc-members:
+   :show-inheritance:

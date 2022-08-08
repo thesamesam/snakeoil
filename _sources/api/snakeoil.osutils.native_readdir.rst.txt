@@ -1,0 +1,7 @@
+snakeoil.osutils.native\_readdir module
+=======================================
+
+.. automodule:: snakeoil.osutils.native_readdir
+   :members:
+   :undoc-members:
+   :show-inheritance:

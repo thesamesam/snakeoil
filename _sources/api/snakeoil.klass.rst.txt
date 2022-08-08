@@ -1,0 +1,7 @@
+snakeoil.klass module
+=====================
+
+.. automodule:: snakeoil.klass
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,7 @@
+snakeoil.demandimport module
+============================
+
+.. automodule:: snakeoil.demandimport
+   :members:
+   :undoc-members:
+   :show-inheritance:

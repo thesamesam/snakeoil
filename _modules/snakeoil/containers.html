@@ -1,0 +1,390 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>snakeoil.containers &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.containers</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for snakeoil.containers</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Container classes and functionality for implementing them</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;InvertedContains&quot;</span><span class="p">,</span> <span class="s2">&quot;SetMixin&quot;</span><span class="p">,</span> <span class="s2">&quot;LimitedChangeSet&quot;</span><span class="p">,</span> <span class="s2">&quot;Unchangable&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ProtectedSet&quot;</span><span class="p">,</span> <span class="s2">&quot;RefCountingSet&quot;</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span><span class="p">,</span> <span class="n">filterfalse</span>
+
+<span class="kn">from</span> <span class="nn">.klass</span> <span class="kn">import</span> <span class="n">steal_docs</span>
+
+
+<div class="viewcode-block" id="InvertedContains"><a class="viewcode-back" href="../../api/snakeoil.containers.html#snakeoil.containers.InvertedContains">[docs]</a><span class="k">class</span> <span class="nc">InvertedContains</span><span class="p">(</span><span class="nb">set</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Set that inverts all contains lookup results.</span>
+
+<span class="sd">    Essentially, it&#39;s a set class usable for blacklist containment testing.</span>
+
+<span class="sd">    &gt;&gt;&gt; from snakeoil.containers import InvertedContains</span>
+<span class="sd">    &gt;&gt;&gt; inverted = InvertedContains(range(10))</span>
+<span class="sd">    &gt;&gt;&gt; assert 1 not in inverted</span>
+<span class="sd">    &gt;&gt;&gt; assert 11 in inverted</span>
+<span class="sd">    &gt;&gt;&gt; inverted.add(11)</span>
+<span class="sd">    &gt;&gt;&gt; assert 11 not in inverted</span>
+
+<span class="sd">    Please note it cannot be iterated over due to the essentially</span>
+<span class="sd">    infinite series it represents.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="nb">set</span><span class="o">.</span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># infinite set, non iterable.</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;InvertedContains cannot be iterated over&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SetMixin"><a class="viewcode-back" href="../../api/snakeoil.containers.html#snakeoil.containers.SetMixin">[docs]</a><span class="k">class</span> <span class="nc">SetMixin</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for implementing set classes</span>
+
+<span class="sd">    Subclasses must provide __init__, __iter__ and __contains__.</span>
+
+<span class="sd">    Note that this is a stripped down base; it primarily implements the core</span>
+<span class="sd">    math protocols, methods like symmetric_difference aren&#39;t defined here.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__and__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">kls</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># Note: for these methods we don&#39;t bother to filter dupes from this</span>
+        <span class="c1"># list -  since the subclasses __init__ should already handle this,</span>
+        <span class="c1"># there&#39;s no point doing it twice.</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">kls</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">other</span><span class="p">)</span>
+
+    <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__rand__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__and__</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">kls</span><span class="o">=</span><span class="n">other</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+
+    <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__or__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">kls</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">kls</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)(</span><span class="n">chain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">))</span>
+
+    <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__ror__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__or__</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">kls</span><span class="o">=</span><span class="n">other</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+
+    <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__xor__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">kls</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">kls</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)(</span><span class="n">chain</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">other</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">other</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)))</span>
+
+    <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__rxor__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__xor__</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">kls</span><span class="o">=</span><span class="n">other</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+
+    <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">other</span><span class="p">)</span>
+
+    <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__rsub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">other</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">other</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
+
+    <span class="fm">__add__</span> <span class="o">=</span> <span class="n">steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)(</span><span class="fm">__or__</span><span class="p">)</span>
+    <span class="fm">__radd__</span> <span class="o">=</span> <span class="n">steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)(</span><span class="fm">__ror__</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LimitedChangeSet"><a class="viewcode-back" href="../../api/snakeoil.containers.html#snakeoil.containers.LimitedChangeSet">[docs]</a><span class="k">class</span> <span class="nc">LimitedChangeSet</span><span class="p">(</span><span class="n">SetMixin</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set used to limit the number of times a key can be removed/added.</span>
+
+<span class="sd">    specifically deleting/adding a key only once per commit,</span>
+<span class="sd">    optionally blocking changes to certain keys.</span>
+
+<span class="sd">    &gt;&gt;&gt; from snakeoil.containers import LimitedChangeSet</span>
+<span class="sd">    &gt;&gt;&gt; myset = LimitedChangeSet((1, 2), unchangable_keys=(1,))</span>
+<span class="sd">    &gt;&gt;&gt; assert 1 in myset</span>
+<span class="sd">    &gt;&gt;&gt; myset.add(1)</span>
+<span class="sd">    &gt;&gt;&gt; myset.remove(1) #doctest: +IGNORE_EXCEPTION_DETAIL</span>
+<span class="sd">    Traceback (most recent call last):</span>
+<span class="sd">    Unchangable: key &#39;1&#39; is unchangable</span>
+<span class="sd">    &gt;&gt;&gt; myset.remove(2) # remove it, so we can try adding it</span>
+<span class="sd">    &gt;&gt;&gt; assert 2 not in myset</span>
+<span class="sd">    &gt;&gt;&gt; myset.add(2) #doctest: +IGNORE_EXCEPTION_DETAIL</span>
+<span class="sd">    Traceback (most recent call last):</span>
+<span class="sd">    Unchangable: key &#39;2&#39; is unchangable</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_removed</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">_added</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_default_key_validator</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">val</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initial_keys</span><span class="p">,</span> <span class="n">unchangable_keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">key_validator</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param initial_keys: iterable holding the initial values to set</span>
+<span class="sd">        :param unchangable_keys: container holding keys that cannot be changed</span>
+<span class="sd">        :type unchangeable_keys: None, or an object supporting __contains__</span>
+<span class="sd">        :param key_validator: callback to validate whether or not a key is usable</span>
+<span class="sd">          for this set; primarily is an implementation detail for consumers to validate</span>
+<span class="sd">          what consumers try adding to this set</span>
+<span class="sd">        :type key_validator: callback taking a single argument, and returning a boolean</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key_validator</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">key_validator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_key_validator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_new</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">initial_keys</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validater</span> <span class="o">=</span> <span class="n">key_validator</span>
+        <span class="k">if</span> <span class="n">unchangable_keys</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unchangable_keys</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">unchangable_keys</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="n">unchangable_keys</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">unchangable_keys</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_blacklist</span> <span class="o">=</span> <span class="n">unchangable_keys</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_changed</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_change_order</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_orig</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_new</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LimitedChangeSet.add"><a class="viewcode-back" href="../../api/snakeoil.containers.html#snakeoil.containers.LimitedChangeSet.add">[docs]</a>    <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validater</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_changed</span> <span class="ow">or</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_blacklist</span><span class="p">:</span>
+            <span class="c1"># it&#39;s been del&#39;d already once upon a time.</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_new</span><span class="p">:</span>
+                <span class="k">return</span>
+            <span class="k">raise</span> <span class="n">Unchangable</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_new</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_changed</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_change_order</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_added</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="LimitedChangeSet.remove"><a class="viewcode-back" href="../../api/snakeoil.containers.html#snakeoil.containers.LimitedChangeSet.remove">[docs]</a>    <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validater</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_changed</span> <span class="ow">or</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_blacklist</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_new</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">Unchangable</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_new</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_new</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_changed</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_change_order</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_removed</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span></div>
+
+    <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validater</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_new</span>
+
+<div class="viewcode-block" id="LimitedChangeSet.changes_count"><a class="viewcode-back" href="../../api/snakeoil.containers.html#snakeoil.containers.LimitedChangeSet.changes_count">[docs]</a>    <span class="k">def</span> <span class="nf">changes_count</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_change_order</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LimitedChangeSet.commit"><a class="viewcode-back" href="../../api/snakeoil.containers.html#snakeoil.containers.LimitedChangeSet.commit">[docs]</a>    <span class="k">def</span> <span class="nf">commit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_orig</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_new</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_changed</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_change_order</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="LimitedChangeSet.rollback"><a class="viewcode-back" href="../../api/snakeoil.containers.html#snakeoil.containers.LimitedChangeSet.rollback">[docs]</a>    <span class="k">def</span> <span class="nf">rollback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">changes_count</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">point</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">point</span> <span class="o">&gt;</span> <span class="n">l</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> point must be &gt;=0 and &lt;= changes_count()&quot;</span> <span class="o">%</span> <span class="n">point</span><span class="p">)</span>
+        <span class="k">while</span> <span class="n">l</span> <span class="o">&gt;</span> <span class="n">point</span><span class="p">:</span>
+            <span class="n">change</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_change_order</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_changed</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">change</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_removed</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_new</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_new</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="n">l</span> <span class="o">-=</span> <span class="mi">1</span></div>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;LimitedChangeSet([</span><span class="si">%s</span><span class="s2">])&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_new</span><span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],)</span>
+
+    <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_new</span><span class="p">)</span>
+
+    <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_new</span><span class="p">)</span>
+
+    <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">LimitedChangeSet</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_new</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">_new</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">frozenset</span><span class="p">,</span> <span class="nb">set</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_new</span> <span class="o">==</span> <span class="n">other</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span> <span class="o">==</span> <span class="n">other</span></div>
+
+
+<div class="viewcode-block" id="Unchangable"><a class="viewcode-back" href="../../api/snakeoil.containers.html#snakeoil.containers.Unchangable">[docs]</a><span class="k">class</span> <span class="nc">Unchangable</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;key </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s1"> is unchangable&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">key</span></div>
+
+
+<div class="viewcode-block" id="ProtectedSet"><a class="viewcode-back" href="../../api/snakeoil.containers.html#snakeoil.containers.ProtectedSet">[docs]</a><span class="k">class</span> <span class="nc">ProtectedSet</span><span class="p">(</span><span class="n">SetMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Wraps a set pushing all changes into a secondary set.</span>
+
+<span class="sd">    &gt;&gt;&gt; from snakeoil.containers import ProtectedSet</span>
+<span class="sd">    &gt;&gt;&gt; myset = set(range(3))</span>
+<span class="sd">    &gt;&gt;&gt; protected = ProtectedSet(myset)</span>
+<span class="sd">    &gt;&gt;&gt; protected.add(4)</span>
+<span class="sd">    &gt;&gt;&gt; assert 4 not in myset</span>
+<span class="sd">    &gt;&gt;&gt; assert 4 in protected</span>
+<span class="sd">    &gt;&gt;&gt; assert 2 in protected</span>
+<span class="sd">    &gt;&gt;&gt; myset.remove(2)</span>
+<span class="sd">    &gt;&gt;&gt; assert 2 not in protected</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig_set</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_orig</span> <span class="o">=</span> <span class="n">orig_set</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_new</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orig</span> <span class="ow">or</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_new</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">chain</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_new</span><span class="p">),</span> <span class="n">filterfalse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_new</span><span class="o">.</span><span class="fm">__contains__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orig</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_new</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_orig</span><span class="p">))</span>
+
+<div class="viewcode-block" id="ProtectedSet.add"><a class="viewcode-back" href="../../api/snakeoil.containers.html#snakeoil.containers.ProtectedSet.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orig</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_new</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="RefCountingSet"><a class="viewcode-back" href="../../api/snakeoil.containers.html#snakeoil.containers.RefCountingSet">[docs]</a><span class="k">class</span> <span class="nc">RefCountingSet</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set implementation that implements refcounting for add/remove, removing the key only when its refcount is 0.</span>
+
+<span class="sd">    This is particularly useful for essentially summing sequences that are a stream of additions/removals</span>
+
+<span class="sd">    &gt;&gt;&gt; from snakeoil.containers import RefCountingSet</span>
+<span class="sd">    &gt;&gt;&gt; myset = RefCountingSet()</span>
+<span class="sd">    &gt;&gt;&gt; myset.add(1)</span>
+<span class="sd">    &gt;&gt;&gt; myset.add(1)</span>
+<span class="sd">    &gt;&gt;&gt; assert list(myset) == [1]</span>
+<span class="sd">    &gt;&gt;&gt; myset.remove(1)</span>
+<span class="sd">    &gt;&gt;&gt; assert list(myset) == [1]</span>
+<span class="sd">    &gt;&gt;&gt; myset.remove(1)</span>
+<span class="sd">    &gt;&gt;&gt; assert list(myset) == []</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterable</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">iterable</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">iterable</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RefCountingSet.add"><a class="viewcode-back" href="../../api/snakeoil.containers.html#snakeoil.containers.RefCountingSet.add">[docs]</a>    <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">=</span> <span class="n">count</span> <span class="o">+</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="RefCountingSet.remove"><a class="viewcode-back" href="../../api/snakeoil.containers.html#snakeoil.containers.RefCountingSet.remove">[docs]</a>    <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">=</span> <span class="n">count</span> <span class="o">-</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="RefCountingSet.discard"><a class="viewcode-back" href="../../api/snakeoil.containers.html#snakeoil.containers.RefCountingSet.discard">[docs]</a>    <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">discard</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="RefCountingSet.update"><a class="viewcode-back" href="../../api/snakeoil.containers.html#snakeoil.containers.RefCountingSet.update">[docs]</a>    <span class="nd">@steal_docs</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">item</span><span class="p">)</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.containers</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,7 @@
+snakeoil.descriptors module
+===========================
+
+.. automodule:: snakeoil.descriptors
+   :members:
+   :undoc-members:
+   :show-inheritance:

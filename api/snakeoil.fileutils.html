@@ -1,0 +1,260 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>snakeoil.fileutils module &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="snakeoil.formatters module" href="snakeoil.formatters.html" />
+    <link rel="prev" title="snakeoil.errors module" href="snakeoil.errors.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.formatters.html" title="snakeoil.formatters module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.errors.html" title="snakeoil.errors module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" accesskey="U">snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.fileutils module</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-snakeoil.fileutils">
+<span id="snakeoil-fileutils-module"></span><h1>snakeoil.fileutils module<a class="headerlink" href="#module-snakeoil.fileutils" title="Permalink to this heading">¶</a></h1>
+<p>file related operations, mainly reading</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.fileutils.AtomicWriteFile">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.fileutils.</span></span><span class="sig-name descname"><span class="pre">AtomicWriteFile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/fileutils.html#AtomicWriteFile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.fileutils.AtomicWriteFile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">AtomicWriteFile_mixin</span></code></p>
+<p>File class that stores the changes in a tempfile.</p>
+<p>Upon invocation of the close method, this class will use
+<a class="reference external" href="https://docs.python.org/3/library/os.html#os.rename" title="(in Python v3.10)"><code class="xref py py-func docutils literal notranslate"><span class="pre">os.rename()</span></code></a> to atomically replace the destination.</p>
+<p>Similar to file protocol behaviour, except that close <em>must</em>
+be called for the changes to be made live,</p>
+<p>If along the way it’s decided that these changes should be discarded,
+invoke <code class="xref py py-func docutils literal notranslate"><span class="pre">AtomicWriteFile.discard()</span></code>; this will close the file
+without updating the target.</p>
+<p>If this object falls out of memory without ever being discarded nor
+closed, the contents are discarded and a warning is issued.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.fileutils.UnbufferedWriteHandle">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.fileutils.</span></span><span class="sig-name descname"><span class="pre">UnbufferedWriteHandle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stream</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/fileutils.html#UnbufferedWriteHandle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.fileutils.UnbufferedWriteHandle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Class designed to work around py3k buffering issues</p>
+<p>see <a class="reference external" href="http://stackoverflow.com/questions/107705/python-output-buffering">http://stackoverflow.com/questions/107705/python-output-buffering</a>
+for background</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.fileutils.UnbufferedWriteHandle.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/fileutils.html#UnbufferedWriteHandle.write"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.fileutils.UnbufferedWriteHandle.write" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.fileutils.readfile">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.fileutils.</span></span><span class="sig-name descname"><span class="pre">readfile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mypath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">none_on_missing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'utf8'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#snakeoil.fileutils.readfile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a file, returning the contents.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mypath</strong> – fs path for the file to read</p></li>
+<li><p><strong>none_on_missing</strong> – whether to return None if the file is missing,
+else through the exception</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.fileutils.readfile_ascii">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.fileutils.</span></span><span class="sig-name descname"><span class="pre">readfile_ascii</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mypath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">none_on_missing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#snakeoil.fileutils.readfile_ascii" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a file, returning the contents.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mypath</strong> – fs path for the file to read</p></li>
+<li><p><strong>none_on_missing</strong> – whether to return None if the file is missing,
+else through the exception</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.fileutils.readfile_utf8">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.fileutils.</span></span><span class="sig-name descname"><span class="pre">readfile_utf8</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mypath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">none_on_missing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'utf8'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#snakeoil.fileutils.readfile_utf8" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a file, returning the contents.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mypath</strong> – fs path for the file to read</p></li>
+<li><p><strong>none_on_missing</strong> – whether to return None if the file is missing,
+else through the exception</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.fileutils.readlines">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.fileutils.</span></span><span class="sig-name descname"><span class="pre">readlines</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mypath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_whitespace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">swallow_missing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">none_on_missing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'utf8'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#snakeoil.fileutils.readlines" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a file, yielding each line.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mypath</strong> – fs path for the file to read</p></li>
+<li><p><strong>strip_whitespace</strong> – strip any leading or trailing whitespace including newline?</p></li>
+<li><p><strong>swallow_missing</strong> – throw an IOError if missing, or swallow it?</p></li>
+<li><p><strong>none_on_missing</strong> – if the file is missing, return None, else
+if the file is missing return an empty iterable</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.fileutils.readlines_ascii">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.fileutils.</span></span><span class="sig-name descname"><span class="pre">readlines_ascii</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mypath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_whitespace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">swallow_missing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">none_on_missing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ascii'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#snakeoil.fileutils.readlines_ascii" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a file, yielding each line.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mypath</strong> – fs path for the file to read</p></li>
+<li><p><strong>strip_whitespace</strong> – strip any leading or trailing whitespace including newline?</p></li>
+<li><p><strong>swallow_missing</strong> – throw an IOError if missing, or swallow it?</p></li>
+<li><p><strong>none_on_missing</strong> – if the file is missing, return None, else
+if the file is missing return an empty iterable</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.fileutils.readlines_utf8">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.fileutils.</span></span><span class="sig-name descname"><span class="pre">readlines_utf8</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mypath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_whitespace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">swallow_missing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">none_on_missing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'utf8'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#snakeoil.fileutils.readlines_utf8" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a file, yielding each line.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mypath</strong> – fs path for the file to read</p></li>
+<li><p><strong>strip_whitespace</strong> – strip any leading or trailing whitespace including newline?</p></li>
+<li><p><strong>swallow_missing</strong> – throw an IOError if missing, or swallow it?</p></li>
+<li><p><strong>none_on_missing</strong> – if the file is missing, return None, else
+if the file is missing return an empty iterable</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.fileutils.touch">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.fileutils.</span></span><span class="sig-name descname"><span class="pre">touch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">420</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/fileutils.html#touch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.fileutils.touch" title="Permalink to this definition">¶</a></dt>
+<dd><p>touch(1) equivalent</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fname</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – file path</p></li>
+<li><p><strong>mode</strong> (<em>octal</em>) – file mode</p></li>
+</ul>
+</dd>
+</dl>
+<p>See os.utime for other supported arguments.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.fileutils.write_file">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.fileutils.</span></span><span class="sig-name descname"><span class="pre">write_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stream</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/fileutils.html#write_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.fileutils.write_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="snakeoil.errors.html"
+                          title="previous chapter">snakeoil.errors module</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="snakeoil.formatters.html"
+                          title="next chapter">snakeoil.formatters module</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.formatters.html" title="snakeoil.formatters module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.errors.html" title="snakeoil.errors module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.fileutils module</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

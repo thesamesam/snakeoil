@@ -1,0 +1,7 @@
+snakeoil.osutils.mount module
+=============================
+
+.. automodule:: snakeoil.osutils.mount
+   :members:
+   :undoc-members:
+   :show-inheritance:

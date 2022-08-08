@@ -1,0 +1,206 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>snakeoil.stringio module &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="snakeoil.strings module" href="snakeoil.strings.html" />
+    <link rel="prev" title="snakeoil.sequences module" href="snakeoil.sequences.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.strings.html" title="snakeoil.strings module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.sequences.html" title="snakeoil.sequences module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" accesskey="U">snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.stringio module</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-snakeoil.stringio">
+<span id="snakeoil-stringio-module"></span><h1>snakeoil.stringio module<a class="headerlink" href="#module-snakeoil.stringio" title="Permalink to this heading">¶</a></h1>
+<p>StringIO functionality</p>
+<p>This module provides essentially two types of StringIO’s, and two types of modes
+of operation; text versus bytes, and readonly versus writable.</p>
+<p>The reason for separate classes is that when we’re running on py2k, if all we’re
+doing is consuming/reading the data it’s heavily preferable to use <code class="docutils literal notranslate"><span class="pre">cStringIO.StringIO</span></code>
+if at all possible for performance reasons.  Thus we have readonly and writable
+classes; the separation has clear performance benefits.</p>
+<p>Note that while this functionality is based on StringIO and friends, there is some
+differences in behaviour from stdlib- stdlib’s <code class="docutils literal notranslate"><span class="pre">cStringIO.StringIO</span></code> is
+pseudo-writable; it has a truncate method (which works).  This is suboptimal since
+the majority of consumers treat it as write only, thus in these classes we specifically
+raise a TypeError if you try to truncate a readonly instance.  Further, instead of
+just lacking <cite>write</cite> and <cite>writelines</cite> methods, we supply those (to maintain file
+like IO compatibility) but have them raise TypeError if invoked</p>
+<p>Exempting the caveats above, usage of these classes is basically no different
+than interacting with a normal StringIO.</p>
+<p>Finally note that the __slots__ layout for py2k cStringIO differs from
+io.BytesIO (or io.TextIO) in py3k; as such if you’re deriving from a writable
+instance you’ll need to compensate for this if you want to have source that
+is usable under both py2k and py3k.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.stringio.bytes_readonly">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.stringio.</span></span><span class="sig-name descname"><span class="pre">bytes_readonly</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">initial_bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">b''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#snakeoil.stringio.bytes_readonly" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BytesIO</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.stringio.bytes_readonly.truncate">
+<span class="sig-name descname"><span class="pre">truncate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">morekwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#snakeoil.stringio.bytes_readonly.truncate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Truncate the file to at most size bytes.</p>
+<p>Size defaults to the current file position, as returned by tell().
+The current file position is unchanged.  Returns the new size.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.stringio.bytes_readonly.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">morekwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#snakeoil.stringio.bytes_readonly.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write bytes to file.</p>
+<p>Return the number of bytes written.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.stringio.bytes_readonly.writelines">
+<span class="sig-name descname"><span class="pre">writelines</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">morekwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#snakeoil.stringio.bytes_readonly.writelines" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write lines to the file.</p>
+<p>Note that newlines are not added.  lines can be any iterable object
+producing bytes-like objects. This is equivalent to calling write() for
+each element.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.stringio.bytes_writable">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.stringio.</span></span><span class="sig-name descname"><span class="pre">bytes_writable</span></span><a class="headerlink" href="#snakeoil.stringio.bytes_writable" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">BytesIO</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.stringio.text_readonly">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.stringio.</span></span><span class="sig-name descname"><span class="pre">text_readonly</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">initial_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">newline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'\n'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#snakeoil.stringio.text_readonly" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">StringIO</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.stringio.text_readonly.truncate">
+<span class="sig-name descname"><span class="pre">truncate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">morekwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#snakeoil.stringio.text_readonly.truncate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Truncate size to pos.</p>
+<p>The pos argument defaults to the current file position, as
+returned by tell().  The current file position is unchanged.
+Returns the new absolute position.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.stringio.text_readonly.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">morekwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#snakeoil.stringio.text_readonly.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write string to file.</p>
+<p>Returns the number of characters written, which is always equal to
+the length of the string.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.stringio.text_readonly.writelines">
+<span class="sig-name descname"><span class="pre">writelines</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">morekwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#snakeoil.stringio.text_readonly.writelines" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write a list of lines to stream.</p>
+<p>Line separators are not added, so it is usual for each of the
+lines provided to have a line separator at the end.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.stringio.text_writable">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.stringio.</span></span><span class="sig-name descname"><span class="pre">text_writable</span></span><a class="headerlink" href="#snakeoil.stringio.text_writable" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">StringIO</span></code></p>
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="snakeoil.sequences.html"
+                          title="previous chapter">snakeoil.sequences module</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="snakeoil.strings.html"
+                          title="next chapter">snakeoil.strings module</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.strings.html" title="snakeoil.strings module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.sequences.html" title="snakeoil.sequences module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.stringio module</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

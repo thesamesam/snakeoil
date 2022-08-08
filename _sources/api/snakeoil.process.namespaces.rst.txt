@@ -1,0 +1,7 @@
+snakeoil.process.namespaces module
+==================================
+
+.. automodule:: snakeoil.process.namespaces
+   :members:
+   :undoc-members:
+   :show-inheritance:

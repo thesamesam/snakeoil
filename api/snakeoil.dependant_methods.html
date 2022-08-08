@@ -1,0 +1,179 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>snakeoil.dependant_methods module &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="snakeoil.descriptors module" href="snakeoil.descriptors.html" />
+    <link rel="prev" title="snakeoil.demandload module" href="snakeoil.demandload.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.descriptors.html" title="snakeoil.descriptors module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.demandload.html" title="snakeoil.demandload module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" accesskey="U">snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.dependant_methods module</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-snakeoil.dependant_methods">
+<span id="snakeoil-dependant-methods-module"></span><h1>snakeoil.dependant_methods module<a class="headerlink" href="#module-snakeoil.dependant_methods" title="Permalink to this heading">¶</a></h1>
+<p>Metaclass to inject dependencies into method calls.</p>
+<p>Roughly, if you have 3 methods- that must be ran in the order of start, transfer, finish,
+this metaclass enables you to force it such that if <em>finish</em> is called first,
+start, than transfer, finally finish will be invoked transparently.</p>
+<p>Methods involved should all require just <code class="docutils literal notranslate"><span class="pre">self</span></code>.</p>
+<p>The main usage for this code is to enable long chains of steps to be broken
+down into individual methods, and the consuming api not being required to
+know the proper order of invocation for that api unless they want to.</p>
+<p>Most consumers of this metaclass wind up making a <code class="docutils literal notranslate"><span class="pre">finish</span></code> method the final step-
+via that, consuming api’s only requirement is knowing that if they invoke <code class="docutils literal notranslate"><span class="pre">finish</span></code>
+all necessary steps will be ran in the correct order.</p>
+<p>Example usage:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.dependant_methods</span> <span class="kn">import</span> <span class="n">ForcedDepends</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">foo</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">ForcedDepends</span><span class="p">):</span>
+<span class="gp">... </span>  <span class="n">stage_depends</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;finish&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;do_step1&quot;</span><span class="p">,</span> <span class="s2">&quot;do_step2&quot;</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="s2">&quot;do_step1&quot;</span><span class="p">:</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="s2">&quot;do_step2&quot;</span><span class="p">:</span> <span class="s2">&quot;start&quot;</span><span class="p">}</span>
+<span class="gp">...</span>
+<span class="gp">... </span>  <span class="k">def</span> <span class="nf">finish</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;finish invoked&quot;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="kc">True</span>
+<span class="gp">... </span>  <span class="k">def</span> <span class="nf">do_step1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;running step1&quot;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="kc">True</span>
+<span class="gp">... </span>  <span class="k">def</span> <span class="nf">do_step2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;running step2&quot;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="kc">True</span>
+<span class="gp">... </span>  <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;starting&quot;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="kc">True</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">obj</span> <span class="o">=</span> <span class="n">foo</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
+<span class="go">starting</span>
+<span class="go">running step1</span>
+<span class="go">running step2</span>
+<span class="go">finish invoked</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># note, no output since finish has already been ran.</span>
+</pre></div>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.dependant_methods.ForcedDepends">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.dependant_methods.</span></span><span class="sig-name descname"><span class="pre">ForcedDepends</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bases</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/dependant_methods.html#ForcedDepends"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.dependant_methods.ForcedDepends" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">type</span></code></a></p>
+<p>Metaclass forcing methods to run in a certain order.</p>
+<p>Dependencies are controlled by the existance of a stage_depends
+dict in the class namespace. Its keys are method names, values are
+either a string (name of preceeding method), or list/tuple
+(proceeding methods).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stage_depends</strong> – mapping of <em>stage</em> -&gt; stages that must be ran first
+Dependant stages can either be a string (single stage), or a tuple- multiple stages,
+required in the order the’re specified</p></li>
+<li><p><strong>__stage_step_callback__</strong> – callback accepting a single arg, the phase that just ran.
+This method/callback is primarily useful for getting raw notification of stages that
+have just completed- whether for notifying a user, or for debugging.</p></li>
+<li><p><strong>__set_stage_state__</strong> – method accepting a sequence; the stages completed for this
+instance are set to that sequence.  This should be used with extreme care; primarily
+useful for resuming a sequence of stages midway through.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="snakeoil.demandload.html"
+                          title="previous chapter">snakeoil.demandload module</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="snakeoil.descriptors.html"
+                          title="next chapter">snakeoil.descriptors module</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.descriptors.html" title="snakeoil.descriptors module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.demandload.html" title="snakeoil.demandload module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.dependant_methods module</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

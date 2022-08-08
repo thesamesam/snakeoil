@@ -1,0 +1,338 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>snakeoil.obj &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.obj</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for snakeoil.obj</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Object trickery including delayed instantiation and proxying</span>
+
+<span class="sd">Note that the delayed instantiation/proxying that is in use here goes several steps</span>
+<span class="sd">beyond your average proxy implementation- this functionality will take every</span>
+<span class="sd">step possible to make the proxy appear as if there was _no_ proxy at all.</span>
+
+<span class="sd">Specifically this functionality is aware of cpython VM/interpretter semantics-</span>
+<span class="sd">cpython doesn&#39;t use __getattribute__ to pull certain methods (`__str__` is an</span>
+<span class="sd">example most people are aware of of, `__call__`, `__getitem__`, etc are ones most</span>
+<span class="sd">aren&#39;t).  Delayed instantiation is significantly complicated when these methods</span>
+<span class="sd">aren&#39;t properly handled- you wind up having to pay very close attention to exactly</span>
+<span class="sd">where those instances are passed to, what access them, do they trigger any of the slotted</span>
+<span class="sd">special methods, etc.  There is a catch to this however- you can&#39;t just define</span>
+<span class="sd">all slotted methods since if the proxy has those slotted methods, it will use them</span>
+<span class="sd">and you can&#39;t just throw TypeErrors- the execution path has differeed.</span>
+
+<span class="sd">Part of the purpose of snakeoil is to make things that should just work, *work*- this</span>
+<span class="sd">implementation exists to do just that via removing those concerns.  The proxying</span>
+<span class="sd">knows what the resultant class will be and uses a custom proxy that will appear</span>
+<span class="sd">the same to the python machinery for slotted methods- literally the python VM</span>
+<span class="sd">won&#39;t try to __iadd__ the proxy unless the resultant class would&#39;ve supported that</span>
+<span class="sd">functionality, it will consider it callable if the resultant class would be, etc.</span>
+
+<span class="sd">By and large, this proxying is transparent if dealing in python objects (newstyle or old)-</span>
+<span class="sd">for example,</span>
+
+<span class="sd">&gt;&gt;&gt; from snakeoil.obj import DelayedInstantiation_kls</span>
+<span class="sd">&gt;&gt;&gt; class foo:</span>
+<span class="sd">...   def __init__(self, value):</span>
+<span class="sd">...     print(&quot;instance was created&quot;)</span>
+<span class="sd">...     self.attribute = value</span>
+<span class="sd">...   pass</span>
+<span class="sd">&gt;&gt;&gt; delayed = DelayedInstantiation_kls(foo, &quot;bar&quot;)</span>
+<span class="sd">&gt;&gt;&gt; print(isinstance(DelayedInstantiation_kls(foo), foo))</span>
+<span class="sd">True</span>
+<span class="sd">&gt;&gt;&gt; print(delayed.attribute)</span>
+<span class="sd">instance was created</span>
+<span class="sd">bar</span>
+
+<span class="sd">This proxying however cannot cover up certain cpython internal issues- specifically</span>
+<span class="sd">builtins.</span>
+
+<span class="sd">&gt;&gt;&gt; from snakeoil.obj import DelayedInstantiation</span>
+<span class="sd">&gt;&gt;&gt; delayed_tuple = DelayedInstantiation(tuple, lambda x: tuple(x), range(5))</span>
+<span class="sd">&gt;&gt;&gt; print(delayed_tuple + (5, 6, 7))</span>
+<span class="sd">(0, 1, 2, 3, 4, 5, 6, 7)</span>
+<span class="sd">&gt;&gt;&gt; print((5, 6, 7) + delayed_tuple)</span>
+<span class="sd">Traceback (most recent call last):</span>
+<span class="sd">TypeError: can only concatenate tuple (not &quot;CustomDelayedObject&quot;) to tuple</span>
+<span class="sd">&gt;&gt;&gt; # the reason this differs comes down to the cpython vm translating the previous</span>
+<span class="sd">&gt;&gt;&gt; # call into essentially the following-</span>
+<span class="sd">&gt;&gt;&gt; print((5, 6, 7).__add__(delayed_tuple))</span>
+<span class="sd">Traceback (most recent call last):</span>
+<span class="sd">TypeError: can only concatenate tuple (not &quot;CustomDelayedObject&quot;) to tuple</span>
+
+<span class="sd">Simply put, while we can emulate/proxy at the python VM layer appearing like the target,</span>
+<span class="sd">at the c level (which is where tuples are implemented) they expect a certain object</span>
+<span class="sd">structure, and reach in access it directly in certain cases.  This cannot be safely</span>
+<span class="sd">proxied (nor realistically can it be proxied in general without extremely horrible</span>
+<span class="sd">thunking tricks), so it is not attempted.</span>
+
+<span class="sd">Essentially, if DelayedInstantiation&#39;s/proxies are transparent when dealing in native</span>
+<span class="sd">python objects- you will not see issues and you don&#39;t have to care where those objects</span>
+<span class="sd">are used, passed to, etc.  If you&#39;re trying to proxy a builtin, it&#39;s possible, but you</span>
+<span class="sd">do need to keep an eye on where that instance is passed to since it&#39;s not fully transparent.</span>
+
+<span class="sd">As demonstrated above, if you&#39;re trying to proxy a builtin object, the consuming code</span>
+<span class="sd">will have to order its operations appropriately- prefering the proxy&#39;s methods</span>
+<span class="sd">over builtin methods (essentially have the proxy on the left for general ops).</span>
+
+<span class="sd">If that doesn&#39;t make sense to the reader, it&#39;s probably best that the reader not</span>
+<span class="sd">try to proxy builtin objects like tuples, lists, dicts, sets, etc.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;DelayedInstantiation&quot;</span><span class="p">,</span> <span class="s2">&quot;DelayedInstantiation_kls&quot;</span><span class="p">,</span> <span class="s2">&quot;make_kls&quot;</span><span class="p">,</span> <span class="s2">&quot;popattr&quot;</span><span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">klass</span>
+
+<span class="c1"># For our proxy, we have two sets of descriptors-</span>
+<span class="c1"># common, &quot;always there&quot; descriptors that come from</span>
+<span class="c1"># object itself (this is the base_kls_descriptors sequence)</span>
+<span class="c1"># and kls_descriptors. We have a minor optimization in place</span>
+<span class="c1"># to try and use BaseDelayedObject wherever possible to avoid</span>
+<span class="c1"># pointless class creation- thus having two separate lists.</span>
+
+<span class="n">base_kls_descriptors</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;__delattr__&#39;</span><span class="p">,</span> <span class="s1">&#39;__hash__&#39;</span><span class="p">,</span> <span class="s1">&#39;__reduce__&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;__reduce_ex__&#39;</span><span class="p">,</span> <span class="s1">&#39;__repr__&#39;</span><span class="p">,</span> <span class="s1">&#39;__setattr__&#39;</span><span class="p">,</span> <span class="s1">&#39;__str__&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;__format__&#39;</span><span class="p">,</span> <span class="s1">&#39;__subclasshook__&#39;</span><span class="p">,</span>  <span class="c1"># &gt;=py2.6</span>
+    <span class="s1">&#39;__le__&#39;</span><span class="p">,</span> <span class="s1">&#39;__lt__&#39;</span><span class="p">,</span> <span class="s1">&#39;__ge__&#39;</span><span class="p">,</span> <span class="s1">&#39;__gt__&#39;</span><span class="p">,</span> <span class="s1">&#39;__eq__&#39;</span><span class="p">,</span> <span class="s1">&#39;__ne__&#39;</span><span class="p">,</span>  <span class="c1"># py3</span>
+    <span class="s1">&#39;__dir__&#39;</span><span class="p">,</span>  <span class="c1"># &gt;=py3.3</span>
+<span class="p">]</span>
+<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="s1">&#39;__sizeof__&#39;</span><span class="p">):</span>
+    <span class="n">base_kls_descriptors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;__sizeof__&#39;</span><span class="p">)</span>
+<span class="n">base_kls_descriptors</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">base_kls_descriptors</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="popattr"><a class="viewcode-back" href="../../api/snakeoil.obj.html#snakeoil.obj.popattr">[docs]</a><span class="k">def</span> <span class="nf">popattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">klass</span><span class="o">.</span><span class="n">sentinel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Remove and return an attribute from an object if it exists.&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">klass</span><span class="o">.</span><span class="n">sentinel</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">default</span>
+        <span class="c1"># force AttributeError to be raised</span>
+        <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">BaseDelayedObject</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base proxying object</span>
+
+<span class="sd">    This instance specifically has slotted methods matching object&#39;s slottings-</span>
+<span class="sd">    it&#39;s basically a base object proxy, defined specifically to avoid having</span>
+<span class="sd">    to generate a custom class for object derivatives that don&#39;t modify slotted</span>
+<span class="sd">    methods.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">desired_kls</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kwd</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param desired_kls: the class we&#39;ll be proxying to</span>
+<span class="sd">        :param func: a callable to get the actual object</span>
+
+<span class="sd">        All other args and keywords are passed to func during instantiation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">o</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="s2">&quot;__delayed__&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">desired_kls</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">kwd</span><span class="p">))</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="s2">&quot;__obj__&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">o</span>
+
+    <span class="k">def</span> <span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;__obj__&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">attr</span> <span class="o">==</span> <span class="s1">&#39;__class__&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;__delayed__&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">attr</span> <span class="o">==</span> <span class="s1">&#39;__doc__&#39;</span><span class="p">:</span>
+                <span class="n">kls</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;__delayed__&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">kls</span><span class="p">,</span> <span class="s1">&#39;__doc__&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+            <span class="n">obj</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;__instantiate_proxy_instance__&#39;</span><span class="p">)()</span>
+
+        <span class="k">if</span> <span class="n">attr</span> <span class="o">==</span> <span class="s2">&quot;__obj__&quot;</span><span class="p">:</span>
+            <span class="c1"># special casing for klass.alias_method</span>
+            <span class="k">return</span> <span class="n">obj</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__instantiate_proxy_instance__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">delayed</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;__delayed__&quot;</span><span class="p">)</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">delayed</span><span class="p">[</span><span class="mi">1</span><span class="p">](</span><span class="o">*</span><span class="n">delayed</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="o">**</span><span class="n">delayed</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;__obj__&quot;</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__delattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;__delayed__&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">obj</span>
+
+    <span class="c1"># special case the normal descriptors</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">base_kls_descriptors</span><span class="p">:</span>
+        <span class="nb">locals</span><span class="p">()[</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">klass</span><span class="o">.</span><span class="n">alias_method</span><span class="p">(</span>
+            <span class="s2">&quot;__obj__.</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="p">,),</span>
+            <span class="n">doc</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="n">x</span><span class="p">),</span> <span class="s1">&#39;__doc__&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+    <span class="c1"># pylint: disable=undefined-loop-variable</span>
+    <span class="k">del</span> <span class="n">x</span>
+
+
+<span class="c1"># note that we ignore __getattribute__; we already handle it.</span>
+<span class="n">kls_descriptors</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span>
+    <span class="c1"># rich comparison protocol...</span>
+    <span class="s1">&#39;__le__&#39;</span><span class="p">,</span> <span class="s1">&#39;__lt__&#39;</span><span class="p">,</span> <span class="s1">&#39;__eq__&#39;</span><span class="p">,</span> <span class="s1">&#39;__ne__&#39;</span><span class="p">,</span> <span class="s1">&#39;__gt__&#39;</span><span class="p">,</span> <span class="s1">&#39;__ge__&#39;</span><span class="p">,</span>
+    <span class="c1"># unicode conversion</span>
+    <span class="s1">&#39;__unicode__&#39;</span><span class="p">,</span>
+    <span class="c1"># truth...</span>
+    <span class="s1">&#39;__bool__&#39;</span><span class="p">,</span>
+    <span class="c1"># container protocol...</span>
+    <span class="s1">&#39;__len__&#39;</span><span class="p">,</span> <span class="s1">&#39;__getitem__&#39;</span><span class="p">,</span> <span class="s1">&#39;__setitem__&#39;</span><span class="p">,</span> <span class="s1">&#39;__delitem__&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;__iter__&#39;</span><span class="p">,</span> <span class="s1">&#39;__contains__&#39;</span><span class="p">,</span> <span class="s1">&#39;__index__&#39;</span><span class="p">,</span> <span class="s1">&#39;__reversed__&#39;</span><span class="p">,</span>
+    <span class="c1"># deprecated sequence protocol bits...</span>
+    <span class="s1">&#39;__getslice__&#39;</span><span class="p">,</span> <span class="s1">&#39;__setslice__&#39;</span><span class="p">,</span> <span class="s1">&#39;__delslice__&#39;</span><span class="p">,</span>
+    <span class="c1"># numeric...</span>
+    <span class="s1">&#39;__add__&#39;</span><span class="p">,</span> <span class="s1">&#39;__sub__&#39;</span><span class="p">,</span> <span class="s1">&#39;__mul__&#39;</span><span class="p">,</span> <span class="s1">&#39;__floordiv__&#39;</span><span class="p">,</span> <span class="s1">&#39;__mod__&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;__divmod__&#39;</span><span class="p">,</span> <span class="s1">&#39;__pow__&#39;</span><span class="p">,</span> <span class="s1">&#39;__lshift__&#39;</span><span class="p">,</span> <span class="s1">&#39;__rshift__&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;__and__&#39;</span><span class="p">,</span> <span class="s1">&#39;__xor__&#39;</span><span class="p">,</span> <span class="s1">&#39;__or__&#39;</span><span class="p">,</span> <span class="s1">&#39;__div__&#39;</span><span class="p">,</span> <span class="s1">&#39;__truediv__&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;__rad__&#39;</span><span class="p">,</span> <span class="s1">&#39;__rsub__&#39;</span><span class="p">,</span> <span class="s1">&#39;__rmul__&#39;</span><span class="p">,</span> <span class="s1">&#39;__rdiv__&#39;</span><span class="p">,</span> <span class="s1">&#39;__rtruediv__&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;__rfloordiv__&#39;</span><span class="p">,</span> <span class="s1">&#39;__rmod__&#39;</span><span class="p">,</span> <span class="s1">&#39;__rdivmod__&#39;</span><span class="p">,</span> <span class="s1">&#39;__rpow__&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;__rlshift__&#39;</span><span class="p">,</span> <span class="s1">&#39;__rrshift__&#39;</span><span class="p">,</span> <span class="s1">&#39;__rand__&#39;</span><span class="p">,</span> <span class="s1">&#39;__rxor__&#39;</span><span class="p">,</span> <span class="s1">&#39;__ror__&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;__iadd__&#39;</span><span class="p">,</span> <span class="s1">&#39;__isub__&#39;</span><span class="p">,</span> <span class="s1">&#39;__imul__&#39;</span><span class="p">,</span> <span class="s1">&#39;__idiv__&#39;</span><span class="p">,</span> <span class="s1">&#39;__itruediv__&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;__ifloordiv__&#39;</span><span class="p">,</span> <span class="s1">&#39;__imod__&#39;</span><span class="p">,</span> <span class="s1">&#39;__ipow__&#39;</span><span class="p">,</span> <span class="s1">&#39;__ilshift__&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;__irshift__&#39;</span><span class="p">,</span> <span class="s1">&#39;__iand__&#39;</span><span class="p">,</span> <span class="s1">&#39;__ixor__&#39;</span><span class="p">,</span> <span class="s1">&#39;__ior__&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;__neg__&#39;</span><span class="p">,</span> <span class="s1">&#39;__pos__&#39;</span><span class="p">,</span> <span class="s1">&#39;__abs__&#39;</span><span class="p">,</span> <span class="s1">&#39;__invert__&#39;</span><span class="p">,</span> <span class="s1">&#39;__complex__&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;__int__&#39;</span><span class="p">,</span> <span class="s1">&#39;__long__&#39;</span><span class="p">,</span> <span class="s1">&#39;__float__&#39;</span><span class="p">,</span> <span class="s1">&#39;__oct__&#39;</span><span class="p">,</span> <span class="s1">&#39;__hex__&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;__coerce__&#39;</span><span class="p">,</span> <span class="s1">&#39;__trunc__&#39;</span><span class="p">,</span> <span class="s1">&#39;__radd__&#39;</span><span class="p">,</span> <span class="s1">&#39;__floor__&#39;</span><span class="p">,</span> <span class="s1">&#39;__ceil__&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;__round__&#39;</span><span class="p">,</span>
+    <span class="c1"># remaining...</span>
+    <span class="s1">&#39;__call__&#39;</span><span class="p">,</span> <span class="s1">&#39;__sizeof__&#39;</span><span class="p">,</span>
+<span class="p">])</span>
+
+
+<span class="n">kls_descriptors</span> <span class="o">=</span> <span class="n">kls_descriptors</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">base_kls_descriptors</span><span class="p">)</span>
+<span class="n">descriptor_overrides</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">klass</span><span class="o">.</span><span class="n">alias_method</span><span class="p">(</span><span class="s2">&quot;__obj__.</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">k</span><span class="p">,))</span>
+                        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">kls_descriptors</span><span class="p">}</span>
+
+
+<span class="n">_method_cache</span> <span class="o">=</span> <span class="p">{}</span>
+<div class="viewcode-block" id="make_kls"><a class="viewcode-back" href="../../api/snakeoil.obj.html#snakeoil.obj.make_kls">[docs]</a><span class="k">def</span> <span class="nf">make_kls</span><span class="p">(</span><span class="n">kls</span><span class="p">,</span> <span class="n">proxy_base</span><span class="o">=</span><span class="n">BaseDelayedObject</span><span class="p">):</span>
+    <span class="n">special_descriptors</span> <span class="o">=</span> <span class="n">kls_descriptors</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="nb">dir</span><span class="p">(</span><span class="n">kls</span><span class="p">))</span>
+    <span class="n">doc</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">kls</span><span class="p">,</span> <span class="s1">&#39;__doc__&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">special_descriptors</span> <span class="ow">and</span> <span class="n">doc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">proxy_base</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">special_descriptors</span><span class="p">)),</span> <span class="n">doc</span><span class="p">)</span>
+    <span class="n">o</span> <span class="o">=</span> <span class="n">_method_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">o</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">class</span> <span class="nc">CustomDelayedObject</span><span class="p">(</span><span class="n">proxy_base</span><span class="p">):</span>
+            <span class="nb">locals</span><span class="p">()</span><span class="o">.</span><span class="n">update</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">descriptor_overrides</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+                            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">special_descriptors</span><span class="p">)</span>
+            <span class="vm">__doc__</span> <span class="o">=</span> <span class="n">doc</span>
+
+        <span class="n">o</span> <span class="o">=</span> <span class="n">CustomDelayedObject</span>
+        <span class="n">_method_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">o</span>
+    <span class="k">return</span> <span class="n">o</span></div>
+
+
+<div class="viewcode-block" id="DelayedInstantiation_kls"><a class="viewcode-back" href="../../api/snakeoil.obj.html#snakeoil.obj.DelayedInstantiation_kls">[docs]</a><span class="k">def</span> <span class="nf">DelayedInstantiation_kls</span><span class="p">(</span><span class="n">kls</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kwd</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Wrapper for DelayedInstantiation</span>
+
+<span class="sd">    This just invokes DelayedInstantiation(kls, kls \*a, \*\*kwd)</span>
+
+<span class="sd">    See :func:`DelayedInstantiation` for argument specifics.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">DelayedInstantiation</span><span class="p">(</span><span class="n">kls</span><span class="p">,</span> <span class="n">kls</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kwd</span><span class="p">)</span></div>
+
+
+<span class="n">_class_cache</span> <span class="o">=</span> <span class="p">{}</span>
+<div class="viewcode-block" id="DelayedInstantiation"><a class="viewcode-back" href="../../api/snakeoil.obj.html#snakeoil.obj.DelayedInstantiation">[docs]</a><span class="k">def</span> <span class="nf">DelayedInstantiation</span><span class="p">(</span><span class="n">resultant_kls</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kwd</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generate an objects that does not get initialized before it is used.</span>
+
+<span class="sd">    The returned object can be passed around without triggering</span>
+<span class="sd">    initialization. The first time it is actually used (an attribute</span>
+<span class="sd">    is accessed) it is initialized once.</span>
+
+<span class="sd">    The returned &quot;fake&quot; object cannot completely reliably mimic a</span>
+<span class="sd">    builtin type. It will usually work but some corner cases may fail</span>
+<span class="sd">    in confusing ways. Make sure to test if DelayedInstantiation has</span>
+<span class="sd">    no unwanted side effects.</span>
+
+<span class="sd">    :param resultant_kls: type object to fake an instance of.</span>
+<span class="sd">    :param func: callable, the return value is used as initialized object.</span>
+
+<span class="sd">    All other positional args and keywords are passed to func during instantiation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">o</span> <span class="o">=</span> <span class="n">_class_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">resultant_kls</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">o</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">o</span> <span class="o">=</span> <span class="n">make_kls</span><span class="p">(</span><span class="n">resultant_kls</span><span class="p">)</span>
+        <span class="n">_class_cache</span><span class="p">[</span><span class="n">resultant_kls</span><span class="p">]</span> <span class="o">=</span> <span class="n">o</span>
+    <span class="k">return</span> <span class="n">o</span><span class="p">(</span><span class="n">resultant_kls</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kwd</span><span class="p">)</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.obj</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

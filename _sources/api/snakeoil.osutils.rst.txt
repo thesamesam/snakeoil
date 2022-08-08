@@ -1,0 +1,19 @@
+snakeoil.osutils package
+========================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   snakeoil.osutils.mount
+   snakeoil.osutils.native_readdir
+
+Module contents
+---------------
+
+.. automodule:: snakeoil.osutils
+   :members:
+   :undoc-members:
+   :show-inheritance:

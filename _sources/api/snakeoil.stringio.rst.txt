@@ -1,0 +1,7 @@
+snakeoil.stringio module
+========================
+
+.. automodule:: snakeoil.stringio
+   :members:
+   :undoc-members:
+   :show-inheritance:

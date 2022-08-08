@@ -1,0 +1,304 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>Welcome to snakeoil. Now what is it? &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
+    
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="snakeoil" href="api/modules.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="api/modules.html" title="snakeoil"
+             accesskey="N">next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">snakeoil -trunk documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Welcome to snakeoil.  Now what is it?</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="welcome-to-snakeoil-now-what-is-it">
+<h1>Welcome to snakeoil.  Now what is it?<a class="headerlink" href="#welcome-to-snakeoil-now-what-is-it" title="Permalink to this heading">¶</a></h1>
+<p>Snakeoil is a library with the rough intentions of holding common python
+patterns/implementations, optimized common functionality, functionality to ease
+supporting multiple python versions (specifically python2.5 through 3.3), and finally
+well tested implementations of rather hard problems to solve.</p>
+<p>Snakeoil’s naming was chosen partially as a python analog of <a class="reference external" href="http://liboil.freedesktop.org/">liboil</a>
+(per cpu assembly optimizations of common operations), and also as a partial warning riffing
+on the common meaning of <a class="reference external" href="http://en.wikipedia.org/wiki/Snake_oil">Snake Oil</a>; specifically
+a supposed miracle cure that has no effect.  To be clear, this package <cite>does</cite> have some
+very powerful functionality and optimizations available, and its usage is well known to speed
+things up: the <a class="reference external" href="https://github.com/pkgcore/pkgcore">pkgcore</a> package manager from which this
+library was derived, makes heavy usage of these optimizations- further in a simple test usage
+of <a class="reference internal" href="api/snakeoil.caching.html#snakeoil.caching.WeakInstMeta" title="snakeoil.caching.WeakInstMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">snakeoil.caching.WeakInstMeta</span></code></a> to <a class="reference external" href="http://www.gentoo.org/proj/en/portage/">portage</a>’s Atom class,
+<code class="docutils literal notranslate"><span class="pre">emerge</span> <span class="pre">-ep</span> <span class="pre">system</span></code> was sped up by 7% with a 20% memory reduction- specifically via just adding
+that metaclass to their Atom class, a one line change.</p>
+<p>The point the authors are trying to make however is that it is not a magic solve all.  Badly
+performant code will still be badly performant code if it’s due to algorithmic idiocies- swapping
+in a snakeoil implementation for what affects 3% of your runtime won’t do anything for the 97%
+that is due to a bad quadratic algorithm for example.  Nor will using the more crazy
+functionality we’ve got make your code necessarily any better to read- while snakeoil
+endeavours to make its functionality simple, and to simplify consuming code, its usage
+does not magically make horrible code better.</p>
+<p>That said, a python mantra is “we’re all adults here”.  Snakeoil fully subscribes to this
+philosophy- the warnings provided are merely to try and make it clear to people that snakeoil
+while powerful, if used in a thoughtless fashion is not advisable.</p>
+<p>Please note that snakeoil while relying on extensions in certain spots, does not require
+the extensions to function- it will just fallback to native python implementations if it
+cannot find its extensions to use.</p>
+<section id="community">
+<h2>Community<a class="headerlink" href="#community" title="Permalink to this heading">¶</a></h2>
+<p>Snakeoil now lives in full at <a class="reference external" href="https://github.com/pkgcore/snakeoil">https://github.com/pkgcore/snakeoil</a>.  Issue tracking, wiki, groups, source, are all available from there.</p>
+</section>
+<section id="getting-the-source-downloading-releases-or-trunk">
+<h2>Getting the source (downloading releases or trunk)<a class="headerlink" href="#getting-the-source-downloading-releases-or-trunk" title="Permalink to this heading">¶</a></h2>
+<p>Snakeoil vcs of choice is <a class="reference external" href="http://git.scm.org/">git</a>, and our source can be checked out at <a class="reference external" href="https://github.com/pkgcore/snakeoil">https://github.com/pkgcore/snakeoil</a></p>
+<p>All releases are available at <a class="reference external" href="https://github.com/pkgcore/snakeoil/releases">https://github.com/pkgcore/snakeoil/releases</a>., with release news available at <span class="xref std std-ref">releases</span>.</p>
+<p>As for dependencies, snakeoil basically just requires python3.8 and up.</p>
+</section>
+</section>
+<section id="snakeoil-intentions">
+<h1>Snakeoil intentions<a class="headerlink" href="#snakeoil-intentions" title="Permalink to this heading">¶</a></h1>
+<p>Following is a rough breakdown of the core areas snakeoil aims to cover.  This is not comprehensive-
+generally speaking things that are useful have a way of winding up being added to snakeoil for reuse
+elsewhere.</p>
+<section id="python-annoyances-and-hard-issues">
+<h2>Python annoyances and hard issues<a class="headerlink" href="#python-annoyances-and-hard-issues" title="Permalink to this heading">¶</a></h2>
+<p>The philosophy behind snakeoil is essentially that <cite>things should just work</cite>-
+to that end, and via a fair amount of unit testing, snakeoil internals will cover up
+the nasty details of how to do something while presenting a simple/no surprises api
+for consumers.  Good examples of this are:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="api/snakeoil.caching.html#snakeoil.caching.WeakInstMeta" title="snakeoil.caching.WeakInstMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">snakeoil.caching.WeakInstMeta</span></code></a>, a metaclass allowing you to inline instance
+reuse for immutable objects.  Essentially, why write multiple factory implementations?  Why not
+push it directly into instance generation itself so that the instance sharing is transparent,
+not requiring the consumer to know that it’s occuring?</p></li>
+<li><p><a class="reference internal" href="api/snakeoil.obj.html#snakeoil.obj.DelayedInstantiation" title="snakeoil.obj.DelayedInstantiation"><code class="xref py py-func docutils literal notranslate"><span class="pre">snakeoil.obj.DelayedInstantiation()</span></code></a>; a object proxy implementation that is effectively
+fully transparent for any non-builtin target proxying it does.  While proxying implementations
+exist, the authors are aware of none that are reusable in this fashion, nor any that address the
+full issue of slotted methods (see the module for full details).</p></li>
+</ul>
+<p>For the issues described above, these are not the simplest problems to solve- people typically
+solve this on an adhoc basis, partially solving the issue but never fully addressing it.  The
+purpose of snakeoil’s functionality in that vein is to solve it once and for all, in one spot,
+with the best possible implementation.  Let developers worry about their problem at hand, rather
+than worry about solving an issue someone else has already addressed essentially.</p>
+</section>
+<section id="supporting-multiple-python-versions-can-be-a-pain">
+<h2>Supporting multiple python versions can be a pain<a class="headerlink" href="#supporting-multiple-python-versions-can-be-a-pain" title="Permalink to this heading">¶</a></h2>
+<p>Another facet of snakeoil functionality is python compatibility- <a class="reference internal" href="api/snakeoil.compatibility.html#module-snakeoil.compatibility" title="snakeoil.compatibility"><code class="xref py py-mod docutils literal notranslate"><span class="pre">snakeoil.compatibility</span></code></a>
+is a separate module that exists to address compatibility issues across py2.7 to py3.4- whether it
+be intern moving to sys.intern, there is a significant amount of functionality in
+there to help with these issues.  Note that compatibility functionality that goes into that module
+isn’t the only compatibility bits- that’s just the general grab bag for it.
+<a class="reference internal" href="api/snakeoil.currying.html#module-snakeoil.currying" title="snakeoil.currying"><code class="xref py py-mod docutils literal notranslate"><span class="pre">snakeoil.currying</span></code></a> is another example (primarily targeting <code class="xref py py-class docutils literal notranslate"><span class="pre">functools.partial</span></code>,
+although providing more functionality than just that limited usage).</p>
+</section>
+<section id="optimizations">
+<h2>Optimizations<a class="headerlink" href="#optimizations" title="Permalink to this heading">¶</a></h2>
+<p>Snakeoil provides a fair amount of optimized implementations.  <a class="reference internal" href="api/snakeoil.osutils.html#module-snakeoil.osutils" title="snakeoil.osutils"><code class="xref py py-mod docutils literal notranslate"><span class="pre">snakeoil.osutils</span></code></a>
+is a good spot to start for file operations/path manipulations, optimized sequence flattening (<a class="reference internal" href="api/snakeoil.sequences.html#snakeoil.sequences.iflatten_instance" title="snakeoil.sequences.iflatten_instance"><code class="xref py py-class docutils literal notranslate"><span class="pre">snakeoil.sequences.iflatten_instance</span></code></a>),
+and optimized common patterns for class implementations (for example the <a class="reference internal" href="api/snakeoil.klass.html#snakeoil.klass.jit_attr" title="snakeoil.klass.jit_attr"><code class="xref py py-func docutils literal notranslate"><span class="pre">snakeoil.klass.jit_attr()</span></code></a> decorator which converts
+secondary calls to the cached attribute into c level lookup speeds).  There is a fair bit more
+than just those examples- it’s in the readers interest to peruse our module docs, there is a fair amount
+available.</p>
+<p>For importation speed issues, we provide <a class="reference internal" href="api/snakeoil.demandload.html#module-snakeoil.demandload" title="snakeoil.demandload"><code class="xref py py-mod docutils literal notranslate"><span class="pre">snakeoil.demandload</span></code></a> - for anyone who has used bzrlib.lazy_import or
+hg’s equivalent implementation, this should be familiar.  In effect, it allows you to delay importation till
+it’s actually needed.  While it’s not obvious, for well written scripts the time required for importation
+can be come a large problem leaving people either the option of splitting up all functionality (which can
+be very problematic from a codebase comprehension standpoint), or suffering the performance degradation.</p>
+<p>As such, having a lazy importer is rather useful- your code still flows the same, just the import is
+done only when something actually needs to access that functionality.</p>
+<p>While we provide speed optimized implementations, we also provide functionality for reduction of memory
+usage- for codebases with a large number of small dictionaries, <a class="reference internal" href="api/snakeoil.mappings.html#snakeoil.mappings.make_SlottedDict_kls" title="snakeoil.mappings.make_SlottedDict_kls"><code class="xref py py-func docutils literal notranslate"><span class="pre">snakeoil.mappings.make_SlottedDict_kls()</span></code></a> can
+reduce the memory requirement in the range of 75-95%.  For codebases that make extensive use of
+<code class="docutils literal notranslate"><span class="pre">__slots__</span></code> for memory reasons, it’s advised that they take a look at <code class="xref py py-class docutils literal notranslate"><span class="pre">snakeoil.test.test_slot_shadowing</span></code></p>
+</section>
+<section id="avoiding-boilerplate-functionality-to-help-with-dry-don-t-repeat-yourself">
+<h2>Avoiding Boilerplate (functionality to help with DRY- Don’t Repeat Yourself)<a class="headerlink" href="#avoiding-boilerplate-functionality-to-help-with-dry-don-t-repeat-yourself" title="Permalink to this heading">¶</a></h2>
+<p>Finally, for folks who have wrote a significantly large python codebase they wind up finding
+themselves repeatedly writing the same type of functionality, over and over.  Things like __eq__
+methods, attribute/class attribute aliasing for backwards compatibility, JIT properties, and
+cloning documentation from preexisting sources.  If interested, <a class="reference internal" href="api/snakeoil.klass.html#module-snakeoil.klass" title="snakeoil.klass"><code class="xref py py-mod docutils literal notranslate"><span class="pre">snakeoil.klass</span></code></a> is a
+good place to start reading.</p>
+</section>
+</section>
+<section id="general-contents">
+<h1>General Contents:<a class="headerlink" href="#general-contents" title="Permalink to this heading">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/modules.html">snakeoil</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/snakeoil.html">snakeoil package</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="news.html">Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-9-11-2022-07-29">snakeoil 0.9.11 (2022-07-29)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-9-10-2021-12-25">snakeoil 0.9.10 (2021-12-25)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-9-9-2021-12-14">snakeoil 0.9.9 (2021-12-14)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-9-8-2021-12-14">snakeoil 0.9.8 (2021-12-14)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-9-7-2021-08-04">snakeoil 0.9.7 (2021-08-04)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-9-6-2021-03-26">snakeoil 0.9.6 (2021-03-26)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-9-5-2021-03-19">snakeoil 0.9.5 (2021-03-19)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-9-4-2021-03-12">snakeoil 0.9.4 (2021-03-12)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-9-3-2021-03-05">snakeoil 0.9.3 (2021-03-05)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-9-2-2021-02-18">snakeoil 0.9.2 (2021-02-18)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-9-1-2021-01-31">snakeoil 0.9.1 (2021-01-31)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-9-0-2021-01-27">snakeoil 0.9.0 (2021-01-27)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-8-9-2020-12-04">snakeoil 0.8.9 (2020-12-04)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-8-8-2020-02-09">snakeoil 0.8.8 (2020-02-09)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-8-7-2020-01-26">snakeoil 0.8.7 (2020-01-26)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-8-6-2020-01-25">snakeoil 0.8.6 (2020-01-25)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-8-5-2019-12-20">snakeoil 0.8.5 (2019-12-20)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-8-4-2019-11-30">snakeoil 0.8.4 (2019-11-30)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-8-3-2019-09-13">snakeoil 0.8.3 (2019-09-13)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-8-2-2019-08-30">snakeoil 0.8.2 (2019-08-30)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-8-1-2019-08-23">snakeoil 0.8.1 (2019-08-23)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-8-0-2019-08-22">snakeoil 0.8.0 (2019-08-22)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-7-5-2017-11-26">snakeoil 0.7.5 (2017-11-26)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-7-4-2017-10-04">snakeoil 0.7.4 (2017-10-04)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-7-3-2017-09-27">snakeoil 0.7.3 (2017-09-27)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-7-2-2017-09-21">snakeoil 0.7.2 (2017-09-21)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-7-1-2016-10-30">snakeoil 0.7.1 (2016-10-30)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-7-0-2016-05-28">snakeoil 0.7.0 (2016-05-28)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-6-6-2015-12-13">snakeoil 0.6.6 (2015-12-13)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-6-5-2015-08-10">snakeoil 0.6.5 (2015-08-10)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-6-4-2015-06-28">snakeoil 0.6.4 (2015-06-28)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-6-3-2015-04-01">snakeoil 0.6.3 (2015-04-01)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-6-2-2015-04-01">snakeoil 0.6.2 (2015-04-01)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-6-1-2015-03-24">snakeoil 0.6.1 (2015-03-24)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-6-2014-12-01">snakeoil 0.6 (2014-12-01)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-5-3-2013-09-26">snakeoil 0.5.3 (2013-09-26)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-5-2-2012-10-17">snakeoil 0.5.2 (2012-10-17)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-5-1-2012-09-29">snakeoil 0.5.1 (2012-09-29)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-5-2012-08-04">snakeoil 0.5 (2012-08-04)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-4-6-2011-12-14">snakeoil 0.4.6 (2011-12-14)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-4-5-2011-11-30">snakeoil 0.4.5 (2011-11-30)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-4-4-2011-10-26">snakeoil 0.4.4 (2011-10-26)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-4-3-2011-09-27">snakeoil 0.4.3 (2011-09-27)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-4-2-2011-09-02">snakeoil 0.4.2 (2011-09-02)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-4-1-2011-06-22">snakeoil 0.4.1 (2011-06-22)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-4-2011-04-24">snakeoil 0.4 (2011-04-24)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-3-7-2010-06-26">snakeoil 0.3.7 (2010-06-26)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-3-6-5-2010-05-21">snakeoil 0.3.6.5 (2010-05-21)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-3-6-4-2010-04-21">snakeoil 0.3.6.4 (2010-04-21)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-3-6-3-2010-03-14">snakeoil 0.3.6.3 (2010-03-14)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-3-6-2-2010-02-15">snakeoil 0.3.6.2 (2010-02-15)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-3-6-1-2010-02-07">snakeoil 0.3.6.1 (2010-02-07)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-3-6-2010-01-08">snakeoil 0.3.6 (2010-01-08)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-3-5-2009-12-27">snakeoil 0.3.5 (2009-12-27)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-3-4-2009-12-13">snakeoil 0.3.4 (2009-12-13)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-3-3-2009-10-26">snakeoil 0.3.3 (2009-10-26)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-3-2-2009-03-24">snakeoil 0.3.2 (2009-03-24)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-3-1-2008-11-07">snakeoil 0.3.1 (2008-11-07)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-3-2008-08-28">snakeoil 0.3 (2008-08-28)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-2-2008-03-18">snakeoil 0.2 (2008-03-18)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-1-2007-11-11">snakeoil 0.1 (2007-11-11)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news.html#snakeoil-0-1-rc2-2007-07-06">snakeoil 0.1-rc2 (2007-07-06)</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this heading">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="#">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Welcome to snakeoil.  Now what is it?</a><ul>
+<li><a class="reference internal" href="#community">Community</a></li>
+<li><a class="reference internal" href="#getting-the-source-downloading-releases-or-trunk">Getting the source (downloading releases or trunk)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#snakeoil-intentions">Snakeoil intentions</a><ul>
+<li><a class="reference internal" href="#python-annoyances-and-hard-issues">Python annoyances and hard issues</a></li>
+<li><a class="reference internal" href="#supporting-multiple-python-versions-can-be-a-pain">Supporting multiple python versions can be a pain</a></li>
+<li><a class="reference internal" href="#optimizations">Optimizations</a></li>
+<li><a class="reference internal" href="#avoiding-boilerplate-functionality-to-help-with-dry-don-t-repeat-yourself">Avoiding Boilerplate (functionality to help with DRY- Don’t Repeat Yourself)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#general-contents">General Contents:</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="api/modules.html"
+                          title="next chapter">snakeoil</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="api/modules.html" title="snakeoil"
+             >next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">snakeoil -trunk documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Welcome to snakeoil.  Now what is it?</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

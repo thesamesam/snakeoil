@@ -1,0 +1,10 @@
+snakeoil.compression package
+============================
+
+Module contents
+---------------
+
+.. automodule:: snakeoil.compression
+   :members:
+   :undoc-members:
+   :show-inheritance:

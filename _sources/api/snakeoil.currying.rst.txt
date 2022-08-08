@@ -1,0 +1,7 @@
+snakeoil.currying module
+========================
+
+.. automodule:: snakeoil.currying
+   :members:
+   :undoc-members:
+   :show-inheritance:

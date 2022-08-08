@@ -1,0 +1,7 @@
+snakeoil.log module
+===================
+
+.. automodule:: snakeoil.log
+   :members:
+   :undoc-members:
+   :show-inheritance:

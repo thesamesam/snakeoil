@@ -1,0 +1,187 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>snakeoil.caching module &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="snakeoil.compatibility module" href="snakeoil.compatibility.html" />
+    <link rel="prev" title="snakeoil.bash module" href="snakeoil.bash.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.compatibility.html" title="snakeoil.compatibility module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.bash.html" title="snakeoil.bash module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" accesskey="U">snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.caching module</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-snakeoil.caching">
+<span id="snakeoil-caching-module"></span><h1>snakeoil.caching module<a class="headerlink" href="#module-snakeoil.caching" title="Permalink to this heading">¶</a></h1>
+<p>Transparent opportunistic weakref instance caching</p>
+<p><a class="reference internal" href="#snakeoil.caching.WeakInstMeta" title="snakeoil.caching.WeakInstMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">WeakInstMeta</span></code></a> is a metaclass designed such that you just add it into
+the target class, and instance caching will be done based on the args/keywords
+passed to __init__.  Essentially, embedding an opportunistic instance caching
+factory into the target class.</p>
+<p>There are some caveats to be aware of in using this metaclass:</p>
+<ul class="simple">
+<li><p>If you’re doing instance sharing, it’s strongly advised you do this only for
+immutable instances.  Generally speaking, you don’t want two different codepaths
+modifying the same object (a ORM implementation is a notable exemption to this).</p></li>
+<li><p>The implementation doesn’t guarantee that it’ll always reuse an instance- if the
+args/keywords aren’t hashable, this machinery cannot cache the instance.  If the
+invocation of the class differs in positional vs optional arg invocation, it’s
+possible to get back a new instance.</p></li>
+<li><p>In short, if you’re generating a lot of immutable instances and want to
+automatically share instances to lower your memory footprint, WeakInstMeta is
+a good metaclass to use.</p></li>
+<li><p>This is weakref caching of instances- it will not force an instance to stay in
+memory, it will only reuse instances that are already in memory.</p></li>
+</ul>
+<p>Simple usage example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.caching</span> <span class="kn">import</span> <span class="n">WeakInstMeta</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">myfoo</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">WeakInstMeta</span><span class="p">):</span>
+<span class="gp">... </span>  <span class="n">__inst_caching__</span> <span class="o">=</span> <span class="kc">True</span> <span class="c1"># safety measure turning caching on</span>
+<span class="gp">... </span>  <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="gp">...</span>
+<span class="gp">... </span>  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg1</span><span class="p">,</span> <span class="n">arg2</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="bp">self</span><span class="o">.</span><span class="n">arg1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">arg2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">option</span> <span class="o">=</span> <span class="n">arg1</span><span class="p">,</span> <span class="n">arg2</span><span class="p">,</span> <span class="n">option</span>
+<span class="gp">... </span>    <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">myfoo</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="ow">is</span> <span class="n">myfoo</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">myfoo</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span> <span class="ow">is</span> <span class="n">myfoo</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">myfoo</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">myfoo</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># per caveats, please note that because this invocation differs</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># in positional/keywords, instance sharing does not occur-</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># despite the fact they&#39;re effectively the same to __init__</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">myfoo</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">myfoo</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># finally note that it is weakref&#39;ing the instances.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># we use the counter attribute here since the python allocator</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># will sometimes reuse the address if there are no allocations</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># between the deletion and creation</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">o</span> <span class="o">=</span> <span class="n">myfoo</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">my_count</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">counter</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">o</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">my_count</span> <span class="o">!=</span> <span class="n">myfoo</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">counter</span> <span class="c1"># a new instance is created</span>
+</pre></div>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.caching.WeakInstMeta">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.caching.</span></span><span class="sig-name descname"><span class="pre">WeakInstMeta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bases</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/caching.html#WeakInstMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.caching.WeakInstMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">type</span></code></a></p>
+<p>Metaclass for instance caching, resulting in reuse of unique instances.</p>
+<dl class="simple">
+<dt>few notes-</dt><dd><ul class="simple">
+<li><p>instances must be immutable (or effectively so).
+Since creating a new instance may return a preexisting instance,
+this requirement B{must} be honored.</p></li>
+<li><p>due to the potential for mishap, each subclass of a caching class must
+assign __inst_caching__ = True to enable caching for the derivative.</p></li>
+<li><p>conversely, __inst_caching__ = False does nothing
+(although it’s useful as a sign of
+I{do not enable caching for this class}</p></li>
+<li><p>instance caching can be disabled per instantiation via passing
+disabling_inst_caching=True into the class constructor.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Being a metaclass, the voodoo used doesn’t require modification of
+the class itself.</p>
+<p>Examples of usage is the restrictions subsystem for
+U{pkgcore project&lt;<a class="reference external" href="http://pkgcore.org">http://pkgcore.org</a>&gt;}</p>
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="snakeoil.bash.html"
+                          title="previous chapter">snakeoil.bash module</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="snakeoil.compatibility.html"
+                          title="next chapter">snakeoil.compatibility module</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.compatibility.html" title="snakeoil.compatibility module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.bash.html" title="snakeoil.bash module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.caching module</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

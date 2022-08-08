@@ -1,0 +1,7 @@
+snakeoil.cli.input module
+=========================
+
+.. automodule:: snakeoil.cli.input
+   :members:
+   :undoc-members:
+   :show-inheritance:

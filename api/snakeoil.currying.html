@@ -1,0 +1,174 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>snakeoil.currying module &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="snakeoil.data_source module" href="snakeoil.data_source.html" />
+    <link rel="prev" title="snakeoil.contexts module" href="snakeoil.contexts.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.data_source.html" title="snakeoil.data_source module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.contexts.html" title="snakeoil.contexts module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" accesskey="U">snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.currying module</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-snakeoil.currying">
+<span id="snakeoil-currying-module"></span><h1>snakeoil.currying module<a class="headerlink" href="#module-snakeoil.currying" title="Permalink to this heading">¶</a></h1>
+<p>Function currying, generating a functor with a set of args/defaults pre bound.</p>
+<p><a class="reference internal" href="#snakeoil.currying.pre_curry" title="snakeoil.currying.pre_curry"><code class="xref py py-func docutils literal notranslate"><span class="pre">pre_curry()</span></code></a> and <a class="reference internal" href="#snakeoil.currying.post_curry" title="snakeoil.currying.post_curry"><code class="xref py py-func docutils literal notranslate"><span class="pre">post_curry()</span></code></a> return “normal” python functions
+The difference between <a class="reference internal" href="#snakeoil.currying.pre_curry" title="snakeoil.currying.pre_curry"><code class="xref py py-func docutils literal notranslate"><span class="pre">pre_curry()</span></code></a> and <a class="reference external" href="https://docs.python.org/3/library/functools.html#functools.partial" title="(in Python v3.10)"><code class="xref py py-func docutils literal notranslate"><span class="pre">functools.partial()</span></code></a>
+is this</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">snakeoil.currying</span> <span class="kn">import</span> <span class="n">pre_curry</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">arg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="gp">... </span>  <span class="k">return</span> <span class="n">arg</span><span class="p">,</span> <span class="bp">self</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">curry</span> <span class="o">=</span> <span class="n">pre_curry</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">part</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">Test</span><span class="p">:</span>
+<span class="gp">... </span>  <span class="n">curry</span> <span class="o">=</span> <span class="n">pre_curry</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<span class="gp">... </span>  <span class="n">part</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<span class="gp">... </span>  <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">... </span>     <span class="k">return</span> <span class="s1">&#39;&lt;Test object&gt;&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">curry</span><span class="p">()</span>
+<span class="go">(True, None)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Test</span><span class="p">()</span><span class="o">.</span><span class="n">curry</span><span class="p">()</span>
+<span class="go">(True, &lt;Test object&gt;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">part</span><span class="p">()</span>
+<span class="go">(True, None)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Test</span><span class="p">()</span><span class="o">.</span><span class="n">part</span><span class="p">()</span>
+<span class="go">(True, None)</span>
+</pre></div>
+</div>
+<p>If your curried function is not used as a class attribute the results should be
+identical. Because <a class="reference external" href="https://docs.python.org/3/library/functools.html#functools.partial" title="(in Python v3.10)"><code class="xref py py-func docutils literal notranslate"><span class="pre">functools.partial()</span></code></a> has an implementation in C
+while <a class="reference internal" href="#snakeoil.currying.pre_curry" title="snakeoil.currying.pre_curry"><code class="xref py py-func docutils literal notranslate"><span class="pre">pre_curry()</span></code></a> is python you should use <a class="reference external" href="https://docs.python.org/3/library/functools.html#functools.partial" title="(in Python v3.10)"><code class="xref py py-func docutils literal notranslate"><span class="pre">functools.partial()</span></code></a>
+if possible.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.currying.post_curry">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.currying.</span></span><span class="sig-name descname"><span class="pre">post_curry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/currying.html#post_curry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.currying.post_curry" title="Permalink to this definition">¶</a></dt>
+<dd><p>passed in args are appended to any further args supplied</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.currying.pre_curry">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.currying.</span></span><span class="sig-name descname"><span class="pre">pre_curry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/currying.html#pre_curry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.currying.pre_curry" title="Permalink to this definition">¶</a></dt>
+<dd><p>passed in args are prefixed, with further args appended</p>
+<p>Unlike partial, this is usable as an instancemethod.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.currying.pretty_docs">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.currying.</span></span><span class="sig-name descname"><span class="pre">pretty_docs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wrapped</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extradocs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/currying.html#pretty_docs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.currying.pretty_docs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Modify wrapped, so that it ‘looks’ like what it’s wrapping.</p>
+<p>This is primarily useful for introspection reasons- doc generators, direct
+user interaction with an object in the interpretter, etc.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>wrapped</strong> – functor to modify</p></li>
+<li><p><strong>extradocs</strong> – <code class="docutils literal notranslate"><span class="pre">__doc__</span></code> override for wrapped; else it pulls from
+wrapped’s target functor</p></li>
+<li><p><strong>name</strong> – <code class="docutils literal notranslate"><span class="pre">__name__</span></code> override for wrapped; else it pulls from
+wrapped’s target functor for the name.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="snakeoil.contexts.html"
+                          title="previous chapter">snakeoil.contexts module</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="snakeoil.data_source.html"
+                          title="next chapter">snakeoil.data_source module</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.data_source.html" title="snakeoil.data_source module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.contexts.html" title="snakeoil.contexts module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.currying module</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

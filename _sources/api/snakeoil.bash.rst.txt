@@ -1,0 +1,7 @@
+snakeoil.bash module
+====================
+
+.. automodule:: snakeoil.bash
+   :members:
+   :undoc-members:
+   :show-inheritance:

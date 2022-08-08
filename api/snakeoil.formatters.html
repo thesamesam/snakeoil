@@ -1,0 +1,312 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>snakeoil.formatters module &#8212; snakeoil -trunk documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="snakeoil.iterables module" href="snakeoil.iterables.html" />
+    <link rel="prev" title="snakeoil.fileutils module" href="snakeoil.fileutils.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.iterables.html" title="snakeoil.iterables module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.fileutils.html" title="snakeoil.fileutils module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" accesskey="U">snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.formatters module</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-snakeoil.formatters">
+<span id="snakeoil-formatters-module"></span><h1>snakeoil.formatters module<a class="headerlink" href="#module-snakeoil.formatters" title="Permalink to this heading">¶</a></h1>
+<p>Classes wrapping a file-like object to do fancy output on it.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.formatters.Formatter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.formatters.</span></span><span class="sig-name descname"><span class="pre">Formatter</span></span><a class="reference internal" href="../_modules/snakeoil/formatters.html#Formatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.formatters.Formatter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Abstract formatter base class.</p>
+<p>The types of most of the instance attributes is undefined (depends
+on the implementation of the particular Formatter subclass).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bold</strong> – object to pass to <a class="reference internal" href="#snakeoil.formatters.Formatter.write" title="snakeoil.formatters.Formatter.write"><code class="xref py py-func docutils literal notranslate"><span class="pre">write()</span></code></a> to switch to bold mode.</p></li>
+<li><p><strong>underline</strong> – object to pass to <a class="reference internal" href="#snakeoil.formatters.Formatter.write" title="snakeoil.formatters.Formatter.write"><code class="xref py py-func docutils literal notranslate"><span class="pre">write()</span></code></a> to switch to underlined mode.</p></li>
+<li><p><strong>reset</strong> – object to pass to <a class="reference internal" href="#snakeoil.formatters.Formatter.write" title="snakeoil.formatters.Formatter.write"><code class="xref py py-func docutils literal notranslate"><span class="pre">write()</span></code></a> to turn off bold and underline.</p></li>
+<li><p><strong>wrap</strong> – boolean indicating we auto-linewrap (defaults to off).</p></li>
+<li><p><strong>autoline</strong> – boolean indicating we are in auto-newline mode
+(defaults to on).</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.formatters.Formatter.bg">
+<span class="sig-name descname"><span class="pre">bg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/formatters.html#Formatter.bg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.formatters.Formatter.bg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Change background color.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>color</strong> – color to change to. A default is used if omitted.
+if passed None, resets to the default color.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>object representing changing the background to the requested
+color, if possible for this formatter.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.formatters.Formatter.error">
+<span class="sig-name descname"><span class="pre">error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/formatters.html#Formatter.error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.formatters.Formatter.error" title="Permalink to this definition">¶</a></dt>
+<dd><p>Format a string as an error message.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.formatters.Formatter.fg">
+<span class="sig-name descname"><span class="pre">fg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/formatters.html#Formatter.fg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.formatters.Formatter.fg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Change foreground color.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>color</strong> – color to change to. A default is used if omitted.
+if passed None, resets to the default color.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>object representing changing the foreground to the requested
+color, if possible for this formatter.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.formatters.Formatter.flush">
+<span class="sig-name descname"><span class="pre">flush</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/formatters.html#Formatter.flush"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.formatters.Formatter.flush" title="Permalink to this definition">¶</a></dt>
+<dd><p>Flush the underlying stream buffer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.formatters.Formatter.title">
+<span class="sig-name descname"><span class="pre">title</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">string</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/formatters.html#Formatter.title"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.formatters.Formatter.title" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the title to string</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.formatters.Formatter.warn">
+<span class="sig-name descname"><span class="pre">warn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/formatters.html#Formatter.warn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.formatters.Formatter.warn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Format a string as a warning message.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.formatters.Formatter.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/formatters.html#Formatter.write"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.formatters.Formatter.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write something to the stream.</p>
+<p>Acceptable arguments are:</p>
+<ul class="simple">
+<li><p>Strings are simply written to the stream.</p></li>
+<li><p>None is ignored.</p></li>
+<li><p>Functions are called with the formatter as argument.
+Their return value is then used the same way as the other
+arguments.</p></li>
+<li><p>Formatter subclasses might special-case certain objects.</p></li>
+</ul>
+<p>Accepts wrap and autoline as keyword arguments. Effect is
+the same as setting them before the write call and resetting
+them afterwards.</p>
+<p>Accepts first_prefixes and later_prefixes as keyword
+arguments. They should be sequences that are temporarily
+appended to the first_prefix and later_prefix attributes.</p>
+<p>Accepts prefixes as a keyword argument. Effect is the same as
+setting first_prefixes and later_prefixes to the same value.</p>
+<p>Accepts first_prefix, later_prefix and prefix as keyword
+argument. Effect is the same as setting first_prefixes,
+later_prefixes or prefixes to a one-element tuple.</p>
+<p>The formatter has a couple of attributes that are useful as argument
+to write.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="snakeoil.formatters.PlainTextFormatter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">snakeoil.formatters.</span></span><span class="sig-name descname"><span class="pre">PlainTextFormatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stream</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">79</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/formatters.html#PlainTextFormatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.formatters.PlainTextFormatter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#snakeoil.formatters.Formatter" title="snakeoil.formatters.Formatter"><code class="xref py py-class docutils literal notranslate"><span class="pre">Formatter</span></code></a></p>
+<p>Formatter writing plain text to a file-like object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>width</strong> – contains the current maximum line length.</p></li>
+<li><p><strong>encoding</strong> – the encoding unicode strings should be converted to.</p></li>
+<li><p><strong>first_prefix</strong> – prefixes to output at the beginning of every write.</p></li>
+<li><p><strong>later_prefix</strong> – prefixes to output on each line after the first of
+every write.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.formatters.PlainTextFormatter.bg">
+<span class="sig-name descname"><span class="pre">bg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/formatters.html#PlainTextFormatter.bg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.formatters.PlainTextFormatter.bg" title="Permalink to this definition">¶</a></dt>
+<dd><p>change bg color</p>
+<p>Compatibility method- no coloring escapes are returned from it.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.formatters.PlainTextFormatter.bold">
+<span class="sig-name descname"><span class="pre">bold</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></em><a class="headerlink" href="#snakeoil.formatters.PlainTextFormatter.bold" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.formatters.PlainTextFormatter.fg">
+<span class="sig-name descname"><span class="pre">fg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/formatters.html#PlainTextFormatter.fg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.formatters.PlainTextFormatter.fg" title="Permalink to this definition">¶</a></dt>
+<dd><p>change fg color</p>
+<p>Compatibility method- no coloring escapes are returned from it.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.formatters.PlainTextFormatter.flush">
+<span class="sig-name descname"><span class="pre">flush</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/formatters.html#PlainTextFormatter.flush"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.formatters.PlainTextFormatter.flush" title="Permalink to this definition">¶</a></dt>
+<dd><p>Flush the underlying stream buffer.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.formatters.PlainTextFormatter.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></em><a class="headerlink" href="#snakeoil.formatters.PlainTextFormatter.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="snakeoil.formatters.PlainTextFormatter.underline">
+<span class="sig-name descname"><span class="pre">underline</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></em><a class="headerlink" href="#snakeoil.formatters.PlainTextFormatter.underline" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="snakeoil.formatters.PlainTextFormatter.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/formatters.html#PlainTextFormatter.write"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.formatters.PlainTextFormatter.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write something to the stream.</p>
+<p>Acceptable arguments are:</p>
+<ul class="simple">
+<li><p>Strings are simply written to the stream.</p></li>
+<li><p>None is ignored.</p></li>
+<li><p>Functions are called with the formatter as argument.
+Their return value is then used the same way as the other
+arguments.</p></li>
+<li><p>Formatter subclasses might special-case certain objects.</p></li>
+</ul>
+<p>Accepts wrap and autoline as keyword arguments. Effect is
+the same as setting them before the write call and resetting
+them afterwards.</p>
+<p>Accepts first_prefixes and later_prefixes as keyword
+arguments. They should be sequences that are temporarily
+appended to the first_prefix and later_prefix attributes.</p>
+<p>Accepts prefixes as a keyword argument. Effect is the same as
+setting first_prefixes and later_prefixes to the same value.</p>
+<p>Accepts first_prefix, later_prefix and prefix as keyword
+argument. Effect is the same as setting first_prefixes,
+later_prefixes or prefixes to a one-element tuple.</p>
+<p>The formatter has a couple of attributes that are useful as argument
+to write.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.formatters.decorate_forced_wrapping">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.formatters.</span></span><span class="sig-name descname"><span class="pre">decorate_forced_wrapping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">setting</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/formatters.html#decorate_forced_wrapping"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.formatters.decorate_forced_wrapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator to force a specific line wrapping state for the duration of invocation.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="snakeoil.formatters.get_formatter">
+<span class="sig-prename descclassname"><span class="pre">snakeoil.formatters.</span></span><span class="sig-name descname"><span class="pre">get_formatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stream</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/snakeoil/formatters.html#get_formatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#snakeoil.formatters.get_formatter" title="Permalink to this definition">¶</a></dt>
+<dd><p>TerminfoFormatter if the stream is a tty, else PlainTextFormatter.</p>
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="snakeoil.fileutils.html"
+                          title="previous chapter">snakeoil.fileutils module</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="snakeoil.iterables.html"
+                          title="next chapter">snakeoil.iterables module</a></p>
+  </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.iterables.html" title="snakeoil.iterables module"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="snakeoil.fileutils.html" title="snakeoil.fileutils module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">snakeoil -trunk documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="modules.html" >snakeoil</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="snakeoil.html" >snakeoil package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">snakeoil.formatters module</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2007-2022, snakeoil contributors.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+  </body>
+</html>

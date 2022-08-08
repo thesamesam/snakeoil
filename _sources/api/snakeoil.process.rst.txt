@@ -1,0 +1,19 @@
+snakeoil.process package
+========================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   snakeoil.process.namespaces
+   snakeoil.process.spawn
+
+Module contents
+---------------
+
+.. automodule:: snakeoil.process
+   :members:
+   :undoc-members:
+   :show-inheritance:
